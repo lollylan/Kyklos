@@ -1,0 +1,310 @@
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:s="clr-namespace:Kyklos;assembly=Kyklos"
+        Title="Kyklos" Width="1220" Height="800" MinWidth="1080" MinHeight="680"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Ink}" FontFamily="Segoe UI" FontSize="13"
+        TextOptions.TextFormattingMode="Display" UseLayoutRounding="True" SnapsToDevicePixels="True"
+        WindowStartupLocation="CenterScreen">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="244"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- Seitenleiste: Räder und Allgemeines -->
+    <Border Background="{StaticResource Rail}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+      <Grid Margin="12,20,12,12">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="Räder" Style="{StaticResource GroupLabel}" Margin="11,0,0,8"/>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False">
+          <StackPanel>
+            <ListBox x:Name="WheelList" Style="{StaticResource RailList}"/>
+            <Button x:Name="AddWheel" Style="{StaticResource BtnGhost}" HorizontalContentAlignment="Left" Margin="0,2,0,0">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE710;" Style="{StaticResource Glyph}" FontSize="12" Margin="1,1,9,0"/>
+                <TextBlock Text="Rad hinzufügen"/>
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
+        <StackPanel Grid.Row="2">
+          <ToggleButton x:Name="NavGeneral" Style="{StaticResource RailToggle}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE713;" Style="{StaticResource Glyph}" Margin="0,1,9,0"/>
+              <TextBlock Text="Allgemein"/>
+            </StackPanel>
+          </ToggleButton>
+          <TextBlock x:Name="Status" Style="{StaticResource Help}" Margin="11,10,0,2" Text="Änderungen werden sofort gespeichert."/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Rad bearbeiten -->
+    <Grid x:Name="EditorPanel" Grid.Column="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="396"/>
+      </Grid.ColumnDefinitions>
+
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="32,22,28,0">
+          <DockPanel>
+            <Button x:Name="DeleteWheel" DockPanel.Dock="Right" Style="{StaticResource BtnGhost}" Content="Rad löschen"
+                    VerticalAlignment="Center" Margin="12,0,0,0"/>
+            <TextBox x:Name="WheelName" Style="{StaticResource TitleBox}" Tag="Name des Rads" MaxLength="40"/>
+          </DockPanel>
+          <!-- Bricht bei schmalem Fenster in zwei Zeilen um. -->
+          <WrapPanel Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" Margin="0,0,28,8">
+              <TextBlock Text="Auslöser" Style="{StaticResource InlineLabel}"/>
+              <Button x:Name="TriggerBtn" Style="{StaticResource Btn}" MinWidth="112"
+                      ToolTip="Anklicken, dann die Taste, Tastenkombination oder Maus-Seitentaste drücken, die das Rad öffnen soll"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <TextBlock x:Name="CountText" Style="{StaticResource InlineLabel}"/>
+              <Button x:Name="AddSlot" Style="{StaticResource Btn}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xE710;" Style="{StaticResource Glyph}" FontSize="11" Margin="0,1,8,0"/>
+                  <TextBlock Text="Segment"/>
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </WrapPanel>
+          <TextBlock x:Name="TriggerNote" Style="{StaticResource Help}" Foreground="{StaticResource Danger}" Margin="0,0,0,0" Visibility="Collapsed"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="12,6,12,0">
+          <Viewbox StretchDirection="DownOnly">
+            <s:WheelView x:Name="Preview" Width="532" Height="532"/>
+          </Viewbox>
+          <StackPanel x:Name="Crumbs" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,10,0,0"/>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Margin="32,0,32,18">
+          <TextBlock x:Name="UsageHint" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+          <TextBlock Style="{StaticResource Help}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,4,0,0"
+                     Text="Segment anklicken, um es zu bearbeiten. Ziehen vertauscht zwei Segmente."/>
+        </StackPanel>
+      </Grid>
+
+      <!-- Inspektor des gewählten Segments -->
+      <Border Grid.Column="1" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="1,0,0,0">
+        <DockPanel>
+          <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="24,14">
+            <DockPanel LastChildFill="False">
+              <Button x:Name="TestBtn" Style="{StaticResource BtnPrimary}" Content="Aktion testen" MinWidth="128"
+                      ToolTip="Startet nach 3 Sekunden – klicke in dieser Zeit in das Zielfeld"/>
+              <Button x:Name="RemoveSlot" DockPanel.Dock="Right" Style="{StaticResource BtnGhost}" Content="Segment entfernen"/>
+            </DockPanel>
+          </Border>
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+            <StackPanel Margin="24,22,24,24">
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                  <Button x:Name="MoveCcw" Style="{StaticResource BtnIcon}" ToolTip="Gegen den Uhrzeigersinn verschieben">
+                    <TextBlock Text="&#xE76B;" Style="{StaticResource Glyph}" FontSize="12"/>
+                  </Button>
+                  <Button x:Name="MoveCw" Style="{StaticResource BtnIcon}" ToolTip="Im Uhrzeigersinn verschieben">
+                    <TextBlock Text="&#xE76C;" Style="{StaticResource Glyph}" FontSize="12"/>
+                  </Button>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock x:Name="SlotTitle" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock x:Name="SlotPos" FontSize="12" Foreground="{StaticResource Ink2}" Margin="0,3,0,0"/>
+                </StackPanel>
+              </DockPanel>
+
+              <TextBlock Text="Beschriftung" Style="{StaticResource FieldLabel}"/>
+              <TextBox x:Name="LabelBox" Tag="z. B. Lunge" MaxLength="40"/>
+
+              <TextBlock Text="Symbol und Farbe" Style="{StaticResource FieldLabel}"/>
+              <StackPanel Orientation="Horizontal">
+                <Button x:Name="IconBtn" Style="{StaticResource Btn}" Width="44" Height="44" Padding="0" ToolTip="Symbol wählen">
+                  <s:IconView x:Name="IconPreview" Width="24" Height="24"/>
+                </Button>
+                <Button x:Name="ImageBtn" Style="{StaticResource Btn}" Content="Eigenes Bild …" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                <Button x:Name="IconClear" Style="{StaticResource BtnGhost}" Content="Ohne Symbol" Margin="4,0,0,0" VerticalAlignment="Center"/>
+              </StackPanel>
+              <StackPanel x:Name="Swatches" Orientation="Horizontal" Margin="-4,12,0,0"/>
+
+              <TextBlock Text="Aktion" Style="{StaticResource FieldLabel}"/>
+              <ComboBox x:Name="TypeBox"/>
+
+              <StackPanel x:Name="PText" Margin="0,10,0,0">
+                <TextBox x:Name="TextBody" Style="{StaticResource TextArea}" Height="196" Tag="Text, der ins aktive Feld eingefügt wird"/>
+                <Border x:Name="SampleNote" Background="{StaticResource AccentSoft}" CornerRadius="6" Padding="12,10,12,12" Margin="0,8,0,0"
+                        Visibility="Collapsed">
+                  <StackPanel>
+                    <TextBlock TextWrapping="Wrap" LineHeight="18"
+                               Text="Das ist ein Beispieltext von Kyklos, kein geprüfter Befund. Solange du ihn nicht änderst, wird er mit dem Vermerk „[Beispieltext]“ eingefügt."/>
+                    <Button x:Name="SampleKeep" Style="{StaticResource Btn}" Content="Unverändert als meinen Text übernehmen"
+                            HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                  </StackPanel>
+                </Border>
+                <TextBlock Style="{StaticResource Help}"
+                           Text="Platzhalter: {datum}, {uhrzeit}, {wochentag}, {zwischenablage} und {cursor} für die Stelle, an der die Schreibmarke danach steht."/>
+                <TextBlock Text="Lücken zum Ausfüllen" Style="{StaticResource FieldLabel}"/>
+                <StackPanel Orientation="Horizontal">
+                  <Button x:Name="GapFieldBtn" Style="{StaticResource Btn}" Content="Eingabefeld"/>
+                  <Button x:Name="GapChoiceBtn" Style="{StaticResource Btn}" Content="Mehrfachauswahl" Margin="8,0,0,0"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Help}"
+                           Text="{}{?Tage} fragt beim Auslösen einen Wert ab, {?Symptome: Husten | Schnupfen | Fieber} lässt ankreuzen – eingefügt als „Husten und Fieber“. Erst wenn alles ausgefüllt ist, kommt der Text ins Feld."/>
+                <TextBlock Text="Einfügen per" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="TextModeBox"/>
+              </StackPanel>
+
+              <StackPanel x:Name="PKeys" Margin="0,10,0,0">
+                <Button x:Name="KeysBtn" Style="{StaticResource Btn}" HorizontalAlignment="Stretch"/>
+                <TextBlock Style="{StaticResource Help}" Text="Anklicken und die Kombination drücken, die gesendet werden soll."/>
+              </StackPanel>
+
+              <StackPanel x:Name="POpen" Margin="0,10,0,0">
+                <DockPanel>
+                  <Button x:Name="BrowseBtn" DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Durchsuchen …" Margin="8,0,0,0"/>
+                  <TextBox x:Name="PathBox" Tag="Programm, Datei oder Ordner"/>
+                </DockPanel>
+                <TextBlock Text="Parameter (optional)" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="ArgsBox"/>
+              </StackPanel>
+
+              <StackPanel x:Name="PUrl" Margin="0,10,0,0">
+                <TextBox x:Name="UrlBox" Tag="https://…"/>
+              </StackPanel>
+
+              <StackPanel x:Name="PMedia" Margin="0,10,0,0">
+                <ComboBox x:Name="MediaBox"/>
+              </StackPanel>
+
+              <StackPanel x:Name="PMacro" Margin="0,4,0,0">
+                <StackPanel x:Name="StepsHost"/>
+                <ComboBox x:Name="AddStepBox" Tag="Schritt hinzufügen …" Margin="0,12,0,0"/>
+                <DockPanel Margin="0,16,0,0" LastChildFill="False">
+                  <TextBlock Text="Pause zwischen den Schritten" VerticalAlignment="Center"/>
+                  <TextBlock DockPanel.Dock="Right" Text="ms" VerticalAlignment="Center" Foreground="{StaticResource Ink2}" Margin="8,0,0,0"/>
+                  <TextBox x:Name="StepDelayBox" DockPanel.Dock="Right" Width="72" TextAlignment="Right" MaxLength="4"/>
+                </DockPanel>
+              </StackPanel>
+
+              <StackPanel x:Name="PFolder" Margin="0,10,0,0">
+                <Button x:Name="OpenFolderBtn" Style="{StaticResource Btn}" Content="Unterrad bearbeiten" HorizontalAlignment="Left"/>
+                <TextBlock Style="{StaticResource Help}"
+                           Text="Das Unterrad öffnet sich, wenn du über den Außenrand dieser Taste hinausfährst oder kurz auf ihr verweilst."/>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Grid>
+
+    <!-- Allgemeine Einstellungen -->
+    <ScrollViewer x:Name="GeneralPanel" Grid.Column="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Focusable="False">
+      <StackPanel Margin="40,26,40,40" MaxWidth="600" HorizontalAlignment="Left">
+        <TextBlock Text="Allgemein" FontSize="22" FontWeight="SemiBold"/>
+
+        <TextBlock Text="Bedienung" Style="{StaticResource SectionTitle}" Margin="0,24,0,4"/>
+        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
+          <CheckBox x:Name="TapSwitch" Style="{StaticResource Switch}">
+            <StackPanel>
+              <TextBlock Text="Kurzes Antippen hält das Rad offen"/>
+              <TextBlock Style="{StaticResource Help}" Margin="0,3,0,0"
+                         Text="Dann wählst du per Mausklick. Esc, ein Rechtsklick oder ein Klick in die Mitte schließt das Rad."/>
+            </StackPanel>
+          </CheckBox>
+        </Border>
+        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
+          <CheckBox x:Name="CursorSwitch" Style="{StaticResource Switch}">
+            <StackPanel>
+              <TextBlock Text="Mauszeiger nach der Auswahl zurücksetzen"/>
+              <TextBlock Style="{StaticResource Help}" Margin="0,3,0,0"
+                         Text="Der Zeiger springt dorthin zurück, wo er vor dem Öffnen des Rads stand."/>
+            </StackPanel>
+          </CheckBox>
+        </Border>
+        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
+          <DockPanel>
+            <TextBlock x:Name="ScaleText" DockPanel.Dock="Right" Width="48" TextAlignment="Right" VerticalAlignment="Center"/>
+            <Slider x:Name="ScaleSlider" DockPanel.Dock="Right" Width="200" Minimum="70" Maximum="140" SmallChange="5" LargeChange="10"
+                    TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+            <TextBlock Text="Größe des Rads" VerticalAlignment="Center"/>
+          </DockPanel>
+        </Border>
+
+        <TextBlock Text="Text einfügen" Style="{StaticResource SectionTitle}"/>
+        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
+          <CheckBox x:Name="ClipSwitch" Style="{StaticResource Switch}">
+            <StackPanel>
+              <TextBlock Text="Zwischenablage wiederherstellen"/>
+              <TextBlock Style="{StaticResource Help}" Margin="0,3,0,0"
+                         Text="Nach dem Einfügen liegt wieder das in der Zwischenablage, was vorher darin war."/>
+            </StackPanel>
+          </CheckBox>
+        </Border>
+        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="ms" VerticalAlignment="Center" Foreground="{StaticResource Ink2}" Margin="8,0,0,0"/>
+            <TextBox x:Name="DelayBox" DockPanel.Dock="Right" Width="72" TextAlignment="Right" MaxLength="4" VerticalAlignment="Center"/>
+            <StackPanel Margin="0,0,24,0">
+              <TextBlock Text="Wartezeit vor dem Wiederherstellen"/>
+              <TextBlock Style="{StaticResource Help}" Margin="0,3,0,0"
+                         Text="Erhöhen, wenn ein Programm statt des Bausteins den alten Inhalt der Zwischenablage einfügt."/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+        <TextBlock Text="System" Style="{StaticResource SectionTitle}"/>
+        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
+          <CheckBox x:Name="AutostartSwitch" Style="{StaticResource Switch}">
+            <StackPanel>
+              <TextBlock Text="Mit Windows starten"/>
+              <TextBlock Style="{StaticResource Help}" Margin="0,3,0,0"
+                         Text="Trägt diese Exe für dein Benutzerkonto in den Autostart ein. Nach dem Verschieben der Exe neu einschalten."/>
+            </StackPanel>
+          </CheckBox>
+        </Border>
+        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
+          <StackPanel>
+            <TextBlock Text="Konfigurationsdatei"/>
+            <TextBlock x:Name="ConfigPathText" Style="{StaticResource Help}" Margin="0,3,0,0"/>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+              <Button x:Name="OpenConfigDir" Style="{StaticResource Btn}" Content="Ordner öffnen"/>
+              <Button x:Name="ExportBtn" Style="{StaticResource Btn}" Content="Exportieren …" Margin="8,0,0,0"/>
+              <Button x:Name="ImportBtn" Style="{StaticResource Btn}" Content="Importieren …" Margin="8,0,0,0"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <Border Padding="0,14">
+          <DockPanel LastChildFill="False">
+            <TextBlock x:Name="VersionText" Foreground="{StaticResource Ink2}" VerticalAlignment="Center"/>
+            <Button x:Name="QuitBtn" DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Kyklos beenden"/>
+          </DockPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Symbolauswahl -->
+    <Popup x:Name="IconPopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" VerticalOffset="2" HorizontalOffset="-8"
+           PopupAnimation="Fade">
+      <Grid Margin="8,4,8,14">
+        <Border Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="10">
+          <Border.Effect>
+            <DropShadowEffect BlurRadius="16" ShadowDepth="5" Direction="270" Opacity="0.2" Color="#000000"/>
+          </Border.Effect>
+        </Border>
+        <ScrollViewer Width="352" MaxHeight="420" Margin="6" VerticalScrollBarVisibility="Auto" Focusable="False">
+          <StackPanel x:Name="IconHost" Margin="8,6,4,8"/>
+        </ScrollViewer>
+      </Grid>
+    </Popup>
+  </Grid>
+</Window>

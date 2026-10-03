@@ -1,0 +1,859 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-03T16:01:40.542Z",
+  "title": "Design System: Kyklos",
+  "extensions": {
+    "colorMeta": {
+      "CChassis": {
+        "role": "primary",
+        "displayName": "Graphit (Chassis)",
+        "canonical": "oklch(20.1% 0.008 275)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#25262A",
+          "#444549",
+          "#626368",
+          "#84868B",
+          "#A6A7AD",
+          "#CCCDD3",
+          "#EDEEF4"
+        ]
+      },
+      "CKey": {
+        "role": "neutral",
+        "displayName": "Tastenkappe",
+        "canonical": "oklch(27.7% 0.011 271)",
+        "tonalRamp": [
+          "#090B10",
+          "#24262C",
+          "#43454B",
+          "#61636A",
+          "#83868D",
+          "#A5A7AF",
+          "#CBCDD5",
+          "#EBEEF6"
+        ]
+      },
+      "CKeyHot": {
+        "role": "neutral",
+        "displayName": "Tastenkappe, überfahren",
+        "canonical": "oklch(34.0% 0.017 266)",
+        "tonalRamp": [
+          "#080B12",
+          "#23262F",
+          "#41454E",
+          "#5F636D",
+          "#818691",
+          "#A3A8B3",
+          "#C9CED9",
+          "#E9EEFA"
+        ]
+      },
+      "CKeyEmpty": {
+        "role": "neutral",
+        "displayName": "Leere Taste",
+        "canonical": "oklch(22.7% 0.008 275)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#25262A",
+          "#444549",
+          "#626368",
+          "#84868B",
+          "#A6A7AD",
+          "#CCCDD3",
+          "#EDEEF4"
+        ]
+      },
+      "BHub": {
+        "role": "neutral",
+        "displayName": "Display",
+        "canonical": "oklch(14.9% 0.005 264)",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#252629",
+          "#444548",
+          "#626366",
+          "#858689",
+          "#A6A8AB",
+          "#CCCED1",
+          "#EDEEF2"
+        ]
+      },
+      "BBezel": {
+        "role": "neutral",
+        "displayName": "Blende",
+        "canonical": "oklch(23.9% 0.010 268)",
+        "tonalRamp": [
+          "#090B0F",
+          "#24262B",
+          "#43454B",
+          "#616369",
+          "#83868C",
+          "#A5A8AE",
+          "#CBCED4",
+          "#EBEEF5"
+        ]
+      },
+      "BSeat": {
+        "role": "neutral",
+        "displayName": "Mulde",
+        "canonical": "oklch(15.9% 0.007 271)",
+        "tonalRamp": [
+          "#0A0B0E",
+          "#25262A",
+          "#444549",
+          "#626367",
+          "#84868A",
+          "#A6A7AC",
+          "#CCCED2",
+          "#EDEEF3"
+        ]
+      },
+      "PRim": {
+        "role": "neutral",
+        "displayName": "Chassisrand",
+        "canonical": "oklch(31.0% 0.011 271)",
+        "tonalRamp": [
+          "#090B10",
+          "#24262C",
+          "#43454B",
+          "#61636A",
+          "#83868D",
+          "#A5A7AF",
+          "#CBCDD5",
+          "#ECEEF6"
+        ]
+      },
+      "PHubRim": {
+        "role": "neutral",
+        "displayName": "Blendenrand",
+        "canonical": "oklch(29.4% 0.011 271)",
+        "tonalRamp": [
+          "#090B10",
+          "#24262C",
+          "#43454B",
+          "#61636A",
+          "#83868D",
+          "#A5A7AF",
+          "#CBCDD5",
+          "#EBEEF6"
+        ]
+      },
+      "CText": {
+        "role": "neutral",
+        "displayName": "Geräteschrift",
+        "canonical": "oklch(94.9% 0.003 265)",
+        "tonalRamp": [
+          "#0A0B0C",
+          "#262628",
+          "#444547",
+          "#626365",
+          "#858688",
+          "#A7A8A9",
+          "#CDCED0",
+          "#EDEEF0"
+        ]
+      },
+      "CText2": {
+        "role": "neutral",
+        "displayName": "Geräteschrift, zweite Ebene",
+        "canonical": "oklch(73.3% 0.013 260)",
+        "tonalRamp": [
+          "#080B11",
+          "#23272D",
+          "#41454C",
+          "#5F646B",
+          "#82868E",
+          "#A3A8B0",
+          "#C9CED6",
+          "#E9EFF7"
+        ]
+      },
+      "BText3": {
+        "role": "neutral",
+        "displayName": "Geräteschrift, dritte Ebene",
+        "canonical": "oklch(59.9% 0.016 264)",
+        "tonalRamp": [
+          "#080B12",
+          "#22262F",
+          "#41454E",
+          "#5F636D",
+          "#818690",
+          "#A3A8B2",
+          "#C8CED9",
+          "#E9EFFA"
+        ]
+      },
+      "PSelect": {
+        "role": "neutral",
+        "displayName": "Auswahlkontur",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#262626",
+          "#454545",
+          "#636363",
+          "#868686",
+          "#A8A8A8",
+          "#CECECE",
+          "#EEEEEE"
+        ]
+      },
+      "Palette-Orange": {
+        "role": "tertiary",
+        "displayName": "Orange",
+        "canonical": "oklch(75.0% 0.167 51)",
+        "tonalRamp": [
+          "#1A0400",
+          "#411900",
+          "#6D3205",
+          "#984B13",
+          "#CB661E",
+          "#F88435",
+          "#FEBD99",
+          "#FFEADE"
+        ]
+      },
+      "Palette-Gelb": {
+        "role": "tertiary",
+        "displayName": "Gelb",
+        "canonical": "oklch(84.4% 0.151 88)",
+        "tonalRamp": [
+          "#110A00",
+          "#312402",
+          "#574200",
+          "#7B5F08",
+          "#A58111",
+          "#CBA22C",
+          "#F7C744",
+          "#FFEDC2"
+        ]
+      },
+      "Palette-Gruen": {
+        "role": "tertiary",
+        "displayName": "Grün",
+        "canonical": "oklch(77.8% 0.148 154)",
+        "tonalRamp": [
+          "#001004",
+          "#042F18",
+          "#02532C",
+          "#107643",
+          "#1B9F5C",
+          "#4CC27C",
+          "#76EAA1",
+          "#C6FFD7"
+        ]
+      },
+      "Palette-Tuerkis": {
+        "role": "tertiary",
+        "displayName": "Türkis",
+        "canonical": "oklch(77.9% 0.117 189)",
+        "tonalRamp": [
+          "#000F0E",
+          "#022D2B",
+          "#0E504C",
+          "#06736D",
+          "#0E9A93",
+          "#2EBFB6",
+          "#61E6DD",
+          "#B9FEF8"
+        ]
+      },
+      "Palette-Blau": {
+        "role": "tertiary",
+        "displayName": "Blau",
+        "canonical": "oklch(73.0% 0.143 253)",
+        "tonalRamp": [
+          "#000A21",
+          "#00264E",
+          "#064581",
+          "#1564B2",
+          "#3F88D9",
+          "#62ABFF",
+          "#AFD1FA",
+          "#E4F0FF"
+        ]
+      },
+      "Palette-Violett": {
+        "role": "tertiary",
+        "displayName": "Violett",
+        "canonical": "oklch(73.2% 0.153 293)",
+        "tonalRamp": [
+          "#0F002C",
+          "#2E0068",
+          "#4B2C8D",
+          "#684DB1",
+          "#8A71D9",
+          "#AB93FE",
+          "#CFC5FF",
+          "#EEECFF"
+        ]
+      },
+      "Palette-Rot": {
+        "role": "tertiary",
+        "displayName": "Rot",
+        "canonical": "oklch(73.6% 0.161 22)",
+        "tonalRamp": [
+          "#1F0002",
+          "#4E020C",
+          "#81101E",
+          "#AC2F37",
+          "#D65659",
+          "#FD7979",
+          "#FDBAB7",
+          "#FFE9E7"
+        ]
+      },
+      "Palette-Hell": {
+        "role": "tertiary",
+        "displayName": "Hell",
+        "canonical": "oklch(93.6% 0.005 258)",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#252629",
+          "#434547",
+          "#626366",
+          "#848689",
+          "#A6A8AB",
+          "#CCCED1",
+          "#EDEFF2"
+        ]
+      },
+      "Bg": {
+        "role": "neutral",
+        "displayName": "Arbeitsblatt",
+        "canonical": "oklch(96.4% 0.003 265)",
+        "tonalRamp": [
+          "#0A0B0C",
+          "#262628",
+          "#444547",
+          "#626365",
+          "#858688",
+          "#A7A8A9",
+          "#CDCED0",
+          "#EDEEF0"
+        ]
+      },
+      "Rail": {
+        "role": "neutral",
+        "displayName": "Seitenleiste",
+        "canonical": "oklch(93.4% 0.006 265)",
+        "tonalRamp": [
+          "#0A0B0E",
+          "#252629",
+          "#434548",
+          "#616367",
+          "#84868A",
+          "#A6A8AB",
+          "#CCCED2",
+          "#ECEEF2"
+        ]
+      },
+      "Surface": {
+        "role": "neutral",
+        "displayName": "Fläche",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#262626",
+          "#454545",
+          "#636363",
+          "#868686",
+          "#A8A8A8",
+          "#CECECE",
+          "#EEEEEE"
+        ]
+      },
+      "Line": {
+        "role": "neutral",
+        "displayName": "Trennlinie",
+        "canonical": "oklch(88.1% 0.008 261)",
+        "tonalRamp": [
+          "#090B0E",
+          "#24272A",
+          "#434549",
+          "#616368",
+          "#83868B",
+          "#A5A8AD",
+          "#CBCED3",
+          "#ECEFF4"
+        ]
+      },
+      "FieldLine": {
+        "role": "neutral",
+        "displayName": "Feldrahmen",
+        "canonical": "oklch(65.9% 0.015 262)",
+        "tonalRamp": [
+          "#080B11",
+          "#23272E",
+          "#41454D",
+          "#5F636C",
+          "#81868F",
+          "#A3A8B1",
+          "#C9CED8",
+          "#E9EFF9"
+        ]
+      },
+      "Ink": {
+        "role": "primary",
+        "displayName": "Graphit (Schrift und Hauptaktion)",
+        "canonical": "oklch(20.1% 0.008 275)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#25262A",
+          "#444549",
+          "#626368",
+          "#84868B",
+          "#A6A7AD",
+          "#CCCDD3",
+          "#EDEEF4"
+        ]
+      },
+      "Ink2": {
+        "role": "neutral",
+        "displayName": "Schrift, zweite Ebene",
+        "canonical": "oklch(45.6% 0.016 262)",
+        "tonalRamp": [
+          "#080B12",
+          "#22272E",
+          "#40454E",
+          "#5E636D",
+          "#818690",
+          "#A2A8B2",
+          "#C8CED9",
+          "#E9EFFA"
+        ]
+      },
+      "Ink3": {
+        "role": "neutral",
+        "displayName": "Platzhalter",
+        "canonical": "oklch(54.0% 0.015 262)",
+        "tonalRamp": [
+          "#080B12",
+          "#22272E",
+          "#41454D",
+          "#5F636C",
+          "#818690",
+          "#A3A8B2",
+          "#C8CED8",
+          "#E9EFF9"
+        ]
+      },
+      "Accent": {
+        "role": "secondary",
+        "displayName": "Zustands-Orange",
+        "canonical": "oklch(60.0% 0.190 38)",
+        "tonalRamp": [
+          "#1E0100",
+          "#490F00",
+          "#792403",
+          "#A83910",
+          "#E04F1A",
+          "#F8815C",
+          "#FEBCA7",
+          "#FFE9E2"
+        ]
+      },
+      "AccentSoft": {
+        "role": "secondary",
+        "displayName": "Zustands-Orange, weich",
+        "canonical": "oklch(94.8% 0.030 53)",
+        "tonalRamp": [
+          "#150702",
+          "#322219",
+          "#524136",
+          "#715F54",
+          "#958276",
+          "#B8A397",
+          "#DEC9BC",
+          "#FEEADE"
+        ]
+      },
+      "AccentRing": {
+        "role": "secondary",
+        "displayName": "Fokus-Hof",
+        "canonical": "#D9480F59",
+        "tonalRamp": [
+          "#1E0100",
+          "#490F00",
+          "#792403",
+          "#A83910",
+          "#E04F1A",
+          "#F8815C",
+          "#FEBCA7",
+          "#FFE9E2"
+        ]
+      },
+      "HoverSurface": {
+        "role": "neutral",
+        "displayName": "Fläche, überfahren",
+        "canonical": "oklch(95.4% 0.003 248)",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#252728",
+          "#444547",
+          "#626365",
+          "#848688",
+          "#A6A8AA",
+          "#CCCED0",
+          "#EDEFF1"
+        ]
+      },
+      "PressSurface": {
+        "role": "neutral",
+        "displayName": "Fläche, gedrückt",
+        "canonical": "oklch(91.8% 0.006 255)",
+        "tonalRamp": [
+          "#090B0E",
+          "#24272A",
+          "#434548",
+          "#616367",
+          "#84868A",
+          "#A5A8AC",
+          "#CBCED2",
+          "#ECEFF3"
+        ]
+      },
+      "HoverRail": {
+        "role": "neutral",
+        "displayName": "Seitenleiste, überfahren",
+        "canonical": "oklch(90.0% 0.008 261)",
+        "tonalRamp": [
+          "#090B0E",
+          "#24272A",
+          "#434549",
+          "#616368",
+          "#84868B",
+          "#A5A8AD",
+          "#CBCED3",
+          "#ECEFF4"
+        ]
+      },
+      "InkHover": {
+        "role": "neutral",
+        "displayName": "Hauptaktion, überfahren",
+        "canonical": "oklch(30.5% 0.013 267)",
+        "tonalRamp": [
+          "#090B11",
+          "#23262D",
+          "#42454C",
+          "#60636B",
+          "#82868E",
+          "#A4A8B0",
+          "#CACED7",
+          "#EAEEF8"
+        ]
+      },
+      "Danger": {
+        "role": "neutral",
+        "displayName": "Warnung",
+        "canonical": "oklch(50.0% 0.182 30)",
+        "tonalRamp": [
+          "#1F0000",
+          "#4F0201",
+          "#821109",
+          "#B42318",
+          "#DE4F3F",
+          "#FE7A68",
+          "#FDBBB0",
+          "#FFE9E5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Name des Rads (Titelfeld) und Seitentitel „Allgemein\"."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Titel des Inspektors: Name des gewählten Segments."
+      },
+      "section-title": {
+        "displayName": "Section title",
+        "purpose": "Abschnitte der Seite „Allgemein\"."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Grundschrift des Einstellungsfensters, Feldinhalte, Schaltflächen."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Feld- und Gruppenbeschriftungen in Ink2, normale Schreibung."
+      },
+      "help": {
+        "displayName": "Help",
+        "purpose": "Hilfetexte unter Feldern und Schaltern; Tooltips."
+      },
+      "hub-title": {
+        "displayName": "Hub title",
+        "purpose": "Titel im Display der Nabe, höchstens 2 Zeilen."
+      },
+      "hub-desc": {
+        "displayName": "Hub description",
+        "purpose": "Vorschau der Aktion im Display, 3 bis 4 Zeilen."
+      },
+      "key-label": {
+        "displayName": "Key label",
+        "purpose": "Beschriftung unter einem Symbol auf der Taste, höchstens 2 Zeilen."
+      },
+      "key-label-solo": {
+        "displayName": "Key label, solo",
+        "purpose": "Beschriftung ohne Symbol, in der Tastenfarbe, höchstens 3 Zeilen."
+      }
+    },
+    "shadows": [
+      {
+        "name": "Raumschatten",
+        "value": "radial; Mitte (0, 22); Radius outer+60; rgba(0,0,0,0.29) bis outer−30, dann 8 Stufen mit Potenz 2.0 auf 0",
+        "purpose": "Weiter Schatten unter dem Gerät (WheelView.Falloff, _ambient)."
+      },
+      {
+        "name": "Kontaktschatten",
+        "value": "radial; Mitte (0, 5); Radius outer+10; rgba(0,0,0,0.52) bis outer−6, dann 8 Stufen mit Potenz 1.6 auf 0",
+        "purpose": "Enger Schatten direkt am Rand des Geräts (WheelView.Falloff, _contact)."
+      },
+      {
+        "name": "Popup",
+        "value": "0 4px 14px rgba(0,0,0,0.18)",
+        "purpose": "Ausliste der Auswahllisten (DropShadowEffect: BlurRadius 14, ShadowDepth 4)."
+      },
+      {
+        "name": "Popup, Symbolauswahl",
+        "value": "0 5px 16px rgba(0,0,0,0.20)",
+        "purpose": "Symbolauswahl (DropShadowEffect: BlurRadius 16, ShadowDepth 5)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "OpenSeconds",
+        "value": "130ms; 1 − 2^(−10t); Deckkraft 0→1, Größe 94%→100%",
+        "purpose": "Einblenden des Rads."
+      },
+      {
+        "name": "CloseSeconds",
+        "value": "110ms; Deckkraft 1 − t²; Größe 100%→102%",
+        "purpose": "Ausblenden des Rads; die ausgelöste Taste bleibt erleuchtet."
+      },
+      {
+        "name": "Tastenfüllung",
+        "value": "exponentiell; Zeitkonstante 30ms hin (≈70ms bis 90%), 85ms zurück",
+        "purpose": "Farbflut und Hub (LiftPx 4) der Taste unter dem Zeiger."
+      },
+      {
+        "name": "DwellSeconds",
+        "value": "450ms",
+        "purpose": "Verweilen auf einer Unterrad-Taste, bis das Unterrad öffnet (am Außenrand sofort)."
+      },
+      {
+        "name": "TapSeconds",
+        "value": "280ms",
+        "purpose": "Kürzeres Antippen des Auslösers hält das Rad offen."
+      },
+      {
+        "name": "Schalter",
+        "value": "160ms; QuinticEase EaseOut",
+        "purpose": "Knopf des Schalters im Einstellungsfenster."
+      },
+      {
+        "name": "Reduzierte Bewegung",
+        "value": "SystemParameters.ClientAreaAnimation == false → Open = 1, kein Ausblenden, Motion = false (kein Hub)",
+        "purpose": "Windows-Einstellung „Animationen anzeigen\"; gilt für das Rad, die Farbe wechselt weiterhin."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "Fenster, Standard",
+        "value": "1220 × 800"
+      },
+      {
+        "name": "Fenster, Minimum",
+        "value": "1080 × 680"
+      }
+    ],
+    "geometry": [
+      {
+        "name": "HubRadius",
+        "value": "84"
+      },
+      {
+        "name": "InnerRadius",
+        "value": "93"
+      },
+      {
+        "name": "RimWidth",
+        "value": "6"
+      },
+      {
+        "name": "KeyGap",
+        "value": "5"
+      },
+      {
+        "name": "KeyCorner",
+        "value": "8"
+      },
+      {
+        "name": "LiftPx",
+        "value": "4"
+      },
+      {
+        "name": "DeadZone",
+        "value": "34"
+      },
+      {
+        "name": "OuterFor",
+        "value": "≤4: 200 · ≤6: 208 · ≤8: 222 · ≤10: 240 · ≤12: 258"
+      },
+      {
+        "name": "Symbol",
+        "value": "24er-Raster, Strich 1.75, runde Enden; auf der Taste 26 (mit Beschriftung) oder 36"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Auswahlrad",
+      "kind": "custom",
+      "refersTo": "wheel-key",
+      "description": "Signaturkomponente: Graphit-Gerät mit Keiltasten, Display in der Nabe und Richtungsmarke. Vereinfachte Nachbildung (Tastenecken ohne Rundung, eine belegte Taste); überfahren zeigt Farbflut und Hub.",
+      "html": "<svg class=\"ds-wheel\" viewBox=\"-240 -240 480 500\" width=\"360\" role=\"img\" aria-label=\"Auswahlrad mit acht Tasten\"><defs><radialGradient id=\"ds-amb\"><stop offset=\"0\" stop-color=\"#000\" stop-opacity=\".29\"/><stop offset=\".68\" stop-color=\"#000\" stop-opacity=\".29\"/><stop offset=\".84\" stop-color=\"#000\" stop-opacity=\".07\"/><stop offset=\"1\" stop-color=\"#000\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"ds-con\"><stop offset=\"0\" stop-color=\"#000\" stop-opacity=\".52\"/><stop offset=\".93\" stop-color=\"#000\" stop-opacity=\".52\"/><stop offset=\".965\" stop-color=\"#000\" stop-opacity=\".17\"/><stop offset=\"1\" stop-color=\"#000\" stop-opacity=\"0\"/></radialGradient></defs><circle cy=\"22\" r=\"282\" fill=\"url(#ds-amb)\"/><circle cy=\"5\" r=\"232\" fill=\"url(#ds-con)\"/><circle r=\"221.5\" fill=\"#15161A\" stroke=\"#2E3036\"/><circle r=\"154.5\" fill=\"none\" stroke=\"#26282E\" stroke-width=\"123\"/><path class=\"ds-wheel-seat\" d=\"M-82.66 -199.56A216 216 0 0 1 82.66 -199.56L35.59 -85.92A93 93 0 0 0 -35.59 -85.92Z\"/><g class=\"ds-wheel-key\"><path d=\"M-82.66 -199.56A216 216 0 0 1 82.66 -199.56L35.59 -85.92A93 93 0 0 0 -35.59 -85.92Z\"/><g class=\"ds-wheel-icon\" transform=\"translate(-13 -176) scale(1.0833)\" fill=\"none\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z\"/></g><text class=\"ds-wheel-label\" y=\"-131\" text-anchor=\"middle\">Herz</text></g><g stroke=\"#15161A\" stroke-width=\"5\"><line x1=\"81.30\" y1=\"33.68\" x2=\"202.33\" y2=\"83.81\"/><line x1=\"33.68\" y1=\"81.30\" x2=\"83.81\" y2=\"202.33\"/><line x1=\"-33.68\" y1=\"81.30\" x2=\"-83.81\" y2=\"202.33\"/><line x1=\"-81.30\" y1=\"33.68\" x2=\"-202.33\" y2=\"83.81\"/><line x1=\"-81.30\" y1=\"-33.68\" x2=\"-202.33\" y2=\"-83.81\"/><line x1=\"-33.68\" y1=\"-81.30\" x2=\"-83.81\" y2=\"-202.33\"/><line x1=\"33.68\" y1=\"-81.30\" x2=\"83.81\" y2=\"-202.33\"/><line x1=\"81.30\" y1=\"-33.68\" x2=\"202.33\" y2=\"-83.81\"/></g><circle r=\"84\" fill=\"#1D1F24\" stroke=\"#2A2C32\"/><circle r=\"80\" fill=\"#0A0B0D\"/><path class=\"ds-wheel-bead\" d=\"M-14.97 -87.22A88.5 88.5 0 0 1 14.97 -87.22\" fill=\"none\" stroke-width=\"4\" stroke-linecap=\"round\"/><text y=\"-6\" text-anchor=\"middle\" fill=\"#EDEEF0\" font-size=\"15\" font-weight=\"600\">Befunde</text><text y=\"16\" text-anchor=\"middle\" fill=\"#A4A9B1\" font-size=\"13\">Mitte bricht ab</text></svg>",
+      "css": ".ds-wheel{font-family:'Segoe UI',sans-serif;}.ds-wheel-seat{fill:#0C0D10}.ds-wheel-key{cursor:default}.ds-wheel-key path{fill:#26282E;transition:fill 70ms ease-out}.ds-wheel-key{transition:transform 70ms ease-out}.ds-wheel-icon{stroke:#FF7B7B;transition:stroke 70ms ease-out}.ds-wheel-icon path{fill:none}.ds-wheel-label{fill:#EDEEF0;font-size:12.5px;font-weight:600;transition:fill 70ms ease-out}.ds-wheel-bead{stroke:#A4A9B1;opacity:0;transition:opacity 70ms}.ds-wheel:hover .ds-wheel-key{transform:translateY(-4px)}.ds-wheel:hover .ds-wheel-key>path{fill:#FF7B7B}.ds-wheel:hover .ds-wheel-icon{stroke:#15161A}.ds-wheel:hover .ds-wheel-label{fill:#15161A}.ds-wheel:hover .ds-wheel-bead{stroke:#FF7B7B;opacity:1}@media (prefers-reduced-motion:reduce){.ds-wheel:hover .ds-wheel-key{transform:none}}"
+    },
+    {
+      "name": "Schaltfläche (Btn)",
+      "kind": "button",
+      "refersTo": "Btn",
+      "description": "Standard-Schaltfläche für alle gleichrangigen Aktionen im Einstellungsfenster.",
+      "html": "<button class=\"ds-btn\">Unterrad bearbeiten</button>",
+      "css": ".ds-btn{font-family:'Segoe UI',sans-serif;font-size:13px;color:#15161A;background:#FFFFFF;border:1px solid #8D929B;border-radius:6px;min-height:34px;padding:0 12px}.ds-btn:hover{background:#EEF0F2}.ds-btn:active{background:#E1E4E8}.ds-btn:focus-visible{outline:2px solid #D9480F;outline-offset:1px}.ds-btn:disabled{opacity:.45}"
+    },
+    {
+      "name": "Hauptaktion (BtnPrimary)",
+      "kind": "button",
+      "refersTo": "BtnPrimary",
+      "description": "Die eine Hauptaktion einer Ansicht, in Graphit.",
+      "html": "<button class=\"ds-btn-primary\">Aktion testen</button>",
+      "css": ".ds-btn-primary{font-family:'Segoe UI',sans-serif;font-size:13px;font-weight:600;color:#FFFFFF;background:#15161A;border:0;border-radius:6px;min-height:34px;min-width:128px;padding:0 16px}.ds-btn-primary:hover{background:#2C2F36}.ds-btn-primary:active{background:#000000}.ds-btn-primary:focus-visible{outline:2px solid #D9480F;outline-offset:1px}.ds-btn-primary:disabled{opacity:.45}"
+    },
+    {
+      "name": "Geist-Schaltfläche (BtnGhost)",
+      "kind": "button",
+      "refersTo": "BtnGhost",
+      "description": "Nachrangige und entfernende Aktionen ohne Fläche und Rahmen.",
+      "html": "<button class=\"ds-btn-ghost\">Segment entfernen</button>",
+      "css": ".ds-btn-ghost{font-family:'Segoe UI',sans-serif;font-size:13px;color:#15161A;background:transparent;border:0;border-radius:6px;min-height:34px;padding:0 10px}.ds-btn-ghost:hover{background:rgba(21,26,32,.08)}.ds-btn-ghost:active{background:rgba(21,26,32,.15)}.ds-btn-ghost:focus-visible{outline:2px solid #D9480F;outline-offset:1px}.ds-btn-ghost:disabled{opacity:.4}"
+    },
+    {
+      "name": "Textfeld",
+      "kind": "input",
+      "refersTo": "TextBox",
+      "description": "Einzeiliges Feld mit Beschriftung darüber; Fokus zeigt Zustands-Orange und Fokus-Hof.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Beschriftung</span><input class=\"ds-input\" placeholder=\"z. B. Lunge\"></label>",
+      "css": ".ds-field{display:block;font-family:'Segoe UI',sans-serif;}.ds-field-label{display:block;font-size:12px;font-weight:600;color:#525760;margin:0 0 6px}.ds-input{font-family:'Segoe UI',sans-serif;font-size:13px;color:#15161A;background:#FFFFFF;border:1px solid #8D929B;border-radius:6px;min-height:34px;padding:0 8px;width:240px;caret-color:#15161A;outline:0}.ds-input::placeholder{color:#6A6F78}.ds-input:hover{border-color:#525760}.ds-input:focus-visible{border-color:#D9480F;box-shadow:0 0 0 3px rgba(217,72,15,.35)}.ds-input:disabled{opacity:.5}"
+    },
+    {
+      "name": "Schalter",
+      "kind": "custom",
+      "refersTo": "Switch-on",
+      "description": "Einstellung mit Beschriftung und Hilfetext links, Schalter rechts.",
+      "html": "<label class=\"ds-switch\"><span class=\"ds-switch-text\"><span>Mit Windows starten</span><span class=\"ds-switch-help\">Trägt diese Exe für dein Benutzerkonto in den Autostart ein.</span></span><input type=\"checkbox\" checked><span class=\"ds-switch-track\"></span></label>",
+      "css": ".ds-switch{display:flex;align-items:center;gap:24px;font-family:'Segoe UI',sans-serif;font-size:13px;color:#15161A;max-width:520px}.ds-switch-text{flex:1;display:flex;flex-direction:column;gap:3px}.ds-switch-help{font-size:12px;line-height:17px;color:#525760}.ds-switch input{position:absolute;opacity:0}.ds-switch-track{position:relative;width:40px;height:22px;border-radius:11px;background:#8D929B;flex:none}.ds-switch-track::after{content:\"\";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;transition:transform 160ms cubic-bezier(.22,1,.36,1)}.ds-switch input:checked+.ds-switch-track{background:#D9480F}.ds-switch input:checked+.ds-switch-track::after{transform:translateX(18px)}.ds-switch input:focus-visible+.ds-switch-track{outline:2px solid #D9480F;outline-offset:3px}"
+    },
+    {
+      "name": "Farbfelder",
+      "kind": "chip",
+      "refersTo": "Swatch",
+      "description": "Wahl der Tastenfarbe: acht Kreise, der gewählte trägt einen Graphit-Ring.",
+      "html": "<div class=\"ds-swatches\" role=\"radiogroup\" aria-label=\"Farbe\"><label class=\"ds-swatch\" title=\"Orange\"><input type=\"radio\" name=\"ds-color\"><span style=\"background:#FF8A3D\"></span></label><label class=\"ds-swatch\" title=\"Gelb\"><input type=\"radio\" name=\"ds-color\"><span style=\"background:#F5C542\"></span></label><label class=\"ds-swatch\" title=\"Grün\"><input type=\"radio\" name=\"ds-color\"><span style=\"background:#5DD28B\"></span></label><label class=\"ds-swatch\" title=\"Türkis\"><input type=\"radio\" name=\"ds-color\"><span style=\"background:#45CFC6\"></span></label><label class=\"ds-swatch\" title=\"Blau\"><input type=\"radio\" name=\"ds-color\" checked><span style=\"background:#62ABFF\"></span></label><label class=\"ds-swatch\" title=\"Violett\"><input type=\"radio\" name=\"ds-color\"><span style=\"background:#AC94FF\"></span></label><label class=\"ds-swatch\" title=\"Rot\"><input type=\"radio\" name=\"ds-color\"><span style=\"background:#FF7B7B\"></span></label><label class=\"ds-swatch\" title=\"Hell\"><input type=\"radio\" name=\"ds-color\"><span style=\"background:#E8EAED\"></span></label></div>",
+      "css": ".ds-swatches{display:flex;gap:6px}.ds-swatch{position:relative;width:30px;height:30px;border-radius:50%;display:block}.ds-swatch input{position:absolute;opacity:0}.ds-swatch span{position:absolute;inset:5px;border-radius:50%;border:1px solid rgba(0,0,0,.25)}.ds-swatch::after{content:\"\";position:absolute;inset:0;border-radius:50%;border:2px solid #15161A;opacity:0}.ds-swatch:hover::after{opacity:.35}.ds-swatch:has(input:checked)::after{opacity:1}.ds-swatch:has(input:focus-visible){outline:2px solid #D9480F;outline-offset:3px}"
+    },
+    {
+      "name": "Eintrag der Seitenleiste",
+      "kind": "nav",
+      "refersTo": "RailItem",
+      "description": "Radliste: Name und Auslöser; gewählt als weiße Fläche mit Linie auf der Seitenleiste.",
+      "html": "<div class=\"ds-rail\"><button class=\"ds-rail-item ds-rail-item-selected\"><span>Befunde</span><span class=\"ds-rail-sub\">Taste ^ halten</span></button><button class=\"ds-rail-item\"><span>Werkzeuge</span><span class=\"ds-rail-sub\">Maus-Seitentaste 1 halten</span></button></div>",
+      "css": ".ds-rail{background:#E7E9ED;padding:12px;width:220px;display:flex;flex-direction:column;gap:2px}.ds-rail-item{font-family:'Segoe UI',sans-serif;font-size:13px;color:#15161A;text-align:left;display:flex;flex-direction:column;background:transparent;border:1px solid transparent;border-radius:6px;padding:8px 10px}.ds-rail-sub{font-size:12px;color:#525760}.ds-rail-item:hover{background:#DBDEE3}.ds-rail-item-selected,.ds-rail-item-selected:hover{background:#FFFFFF;border-color:#D5D8DD}.ds-rail-item:focus-visible{outline:2px solid #D9480F;outline-offset:1px}"
+    },
+    {
+      "name": "Hinweisfläche",
+      "kind": "card",
+      "refersTo": "Btn",
+      "description": "Kennzeichnet mitgelieferte Beispieltexte; einzige farbige Fläche im Inspektor.",
+      "html": "<div class=\"ds-note\"><p>Das ist ein Beispieltext von Kyklos, kein geprüfter Befund. Solange du ihn nicht änderst, wird er mit dem Vermerk „[Beispieltext]“ eingefügt.</p><button class=\"ds-note-btn\">Unverändert als meinen Text übernehmen</button></div>",
+      "css": ".ds-note{font-family:'Segoe UI',sans-serif;font-size:13px;line-height:18px;color:#15161A;background:#FFE9DC;border-radius:6px;padding:10px 12px 12px;max-width:348px}.ds-note p{margin:0 0 10px}.ds-note-btn{font-family:'Segoe UI',sans-serif;font-size:13px;color:#15161A;background:#FFFFFF;border:1px solid #8D929B;border-radius:6px;min-height:34px;padding:0 12px}.ds-note-btn:hover{background:#EEF0F2}.ds-note-btn:active{background:#E1E4E8}.ds-note-btn:focus-visible{outline:2px solid #D9480F;outline-offset:1px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Das gebogene Stream Deck",
+    "overview": "Das Rad ist ein Gerät, kein HUD. Eine opake, matte Graphit-Scheibe liegt unter dem Mauszeiger, mit echten Tastenkappen in gleich breiten, dunklen Fugen und einem eingelassenen Display in der Nabe. Es erscheint, während eine Taste gehalten wird, nimmt dem Zielprogramm nie den Fokus und verschwindet beim Loslassen. Deshalb ist es dicht und ruhig: nichts daran bewegt sich, außer der Taste unter dem Zeiger und der Richtungsmarke.\n\nFarbe ist Funktion. Jede Taste trägt eine von acht Farben. Im Ruhezustand färbt sie nur das oberste Element der Taste (das Symbol, sonst die Beschriftung); unter dem Zeiger flutet sie die ganze Taste, und Schrift und Symbol kippen auf Graphit. Das Display in der Mitte zeigt vor dem Loslassen, was passieren wird.\n\nDas Einstellungsfenster ist die Gegenseite: ein helles, kühles Arbeitsblatt, auf dem das dunkle Gerät liegt und angeklickt wird. Graphit ist dort Schrift und Hauptaktion, ein dunkles Orange zeigt ausschließlich Zustand (Fokus, eingeschaltet, Hinweis). Die Oberfläche spricht Deutsch und duzt.",
+    "keyCharacteristics": [
+      "Opakes Graphit-Gerät mit Tasten in konstant 5 px breiten Fugen; kein Glühen, keine Transparenz am Gerät.",
+      "Acht Tastenfarben: in Ruhe nur am Symbol, unter dem Zeiger auf der ganzen Taste.",
+      "Display in der Nabe (Ø 168) mit Titel und Vorschau des Ergebnisses.",
+      "Richtungsmarke in der Fuge zwischen Nabe und Tasten folgt dem Zeiger stufenlos.",
+      "Einziger Verlauf im ganzen System ist der zweischichtige Schlagschatten unter dem Gerät.",
+      "Helles Arbeitsblatt mit drei Spalten (Radliste, Gerät, Inspektor) für die Einstellungen.",
+      "Segoe UI in zwei Schnitten (Normal, Semibold), kleine und enge Größenstaffel."
+    ],
+    "rules": [
+      {
+        "name": "Die Farbflut-Regel",
+        "body": "In Ruhe trägt nur das oberste Element einer Taste ihre Farbe (Symbol, sonst Beschriftung); die Beschriftung unter einem Symbol bleibt `CText`. Unter dem Zeiger füllt die Farbe die ganze Taste, und alles darauf wird Graphit. Eigene Bilder behalten ihre Farben.",
+        "section": "colors"
+      },
+      {
+        "name": "Die Zustands-Orange-Regel",
+        "body": "`Accent` zeigt im Einstellungsfenster nur Zustand: Fokus, eingeschaltet, gewählt, Hinweis. Die Hauptaktion ist Graphit, nie Orange.",
+        "section": "colors"
+      },
+      {
+        "name": "Die Zwei-Orange-Regel",
+        "body": "`Palette-Orange` gehört auf das dunkle Gerät, `Accent` auf das helle Arbeitsblatt. Sie werden nicht getauscht: Das helle Orange trägt auf Weiß keine Schrift, das dunkle leuchtet auf Graphit nicht.",
+        "section": "colors"
+      },
+      {
+        "name": "Die Aufrecht-Regel",
+        "body": "Text auf dem Rad steht immer waagerecht und zentriert, nie entlang des Bogens gedreht. Die verfügbare Breite wird je Taste abgetastet (mindestens 44); was nicht passt, endet mit Auslassungspunkten.",
+        "section": "typography"
+      },
+      {
+        "name": "Die Zwei-Schnitte-Regel",
+        "body": "Nur Normal und Semibold. Keine dritte Stärke, keine Kursive, keine Versalien mit Sperrung.",
+        "section": "typography"
+      },
+      {
+        "name": "Die Ein-Schatten-Regel",
+        "body": "Der zweischichtige Schatten unter dem Gerät ist der einzige Verlauf im System. Tasten, Nabe und Flächen bekommen weder Verlauf noch Glanzlicht noch Glühen.",
+        "section": "elevation"
+      },
+      {
+        "name": "Die Opak-Regel",
+        "body": "Das Gerät ist vollständig deckend. Durchscheinend sind nur das Ein- und Ausblenden des ganzen Rads und kleine Zustandsschleier im Einstellungsfenster (überfahrene Geister-Schaltfläche, Rollbalken, Fokus-Hof).",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do das Gerät opak halten: `CChassis` als Scheibe, `CKey` als Tastenkappe, Fugen konstant 5 breit (`KeyGap`).",
+      "Do Farbe in Ruhe auf das Symbol beschränken und erst unter dem Zeiger die ganze Taste fluten; Inhalt dann Graphit.",
+      "Do nur die acht Tastenfarben aus `Palette` verwenden; neue Farben müssen Graphit-Schrift mit mindestens 4,5:1 tragen.",
+      "Do Text auf dem Rad waagerecht setzen und die Breite je Taste abtasten.",
+      "Do im Display zeigen, was beim Loslassen passiert, bevor es passiert.",
+      "Do die Richtungsmarke in der Fuge zwischen Nabe und Tasten führen, in der Farbe der Taste.",
+      "Do Liniensymbole auf 24er-Raster mit Strich 1,75 und runden Enden zeichnen.",
+      "Do die Windows-Einstellung „Animationen anzeigen\" achten: ohne sie kein Einblenden, kein Ausblenden, kein Hub.",
+      "Do im Einstellungsfenster Graphit für die eine Hauptaktion und `Accent` nur für Zustand einsetzen.",
+      "Do Bedienelemente mit `FieldLine` rahmen und Flächen mit `Line` trennen.",
+      "Do auf Deutsch und per Du schreiben, kurz und konkret („Anklicken und belegen\", „Mitte bricht ab\")."
+    ],
+    "donts": [
+      "Don't das Rad durchscheinend machen, weichzeichnen oder glühen lassen – verweigert wird der „durchscheinende Donut mit Neon-Glühen und Blur\".",
+      "Don't Verläufe einsetzen, außer im Schlagschatten unter dem Gerät.",
+      "Don't Tasten in Ruhe einfärben oder Beschriftungen entlang des Bogens drehen.",
+      "Don't `Accent` als Schaltflächenfarbe oder `Palette-Orange` auf hellem Grund verwenden.",
+      "Don't dem Zielprogramm den Fokus nehmen: Das Rad ist ein Gast, kein Fenster.",
+      "Don't eine dritte Schriftstärke, Versalien-Etiketten oder eine zweite Schrift einführen.",
+      "Don't Rasterbilder ausliefern, die nicht der Code erzeugt; das Programmsymbol entsteht beim Bauen."
+    ]
+  }
+}

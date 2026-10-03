@@ -1,0 +1,12 @@
+# Build-Ergebnis – wird als Release veröffentlicht, nicht eingecheckt
+dist/
+*.exe
+
+# Persönliche Konfiguration und Protokolle
+Kyklos.json*
+Shortcut.json*
+*.log
+
+# Archive und Sichtprüfungs-Bilder aus der Entwicklung
+*.7z
+.impeccable/review/
