@@ -152,6 +152,7 @@ namespace Kyklos
         public void DevSelect(int i) { SelectSlot(i); }
         public void DevEnterFolder() { EnterFolder(Cur); }
         public void DevHome() { ShowEditor(); SelectWheel(Cfg.Wheels[0]); }
+        public void DevScrollGeneral() { GeneralPanel.UpdateLayout(); GeneralPanel.ScrollToEnd(); }
         public void DevScrollInspector()
         {
             DependencyObject d = PText;
@@ -511,6 +512,13 @@ namespace Kyklos
             };
             AutostartSwitch.Checked += autostart;
             AutostartSwitch.Unchecked += autostart;
+            var asklaion = F<System.Windows.Documents.Hyperlink>("AsklaionLink");
+            asklaion.RequestNavigate += (s, e) =>
+            {
+                try { Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); }
+                catch (Exception) { }   // kein Standardbrowser: dann eben nicht
+                e.Handled = true;
+            };
             OpenConfigDir.Click += (s, e) => Process.Start("explorer.exe", "/select,\"" + _host.ConfigPath + "\"");
             ExportBtn.Click += (s, e) => Export();
             ImportBtn.Click += (s, e) => Import();

@@ -318,7 +318,14 @@
         </Border>
         <Border Padding="0,14">
           <DockPanel LastChildFill="False">
-            <TextBlock x:Name="VersionText" Foreground="{StaticResource Ink2}" VerticalAlignment="Center"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock x:Name="VersionText" Foreground="{StaticResource Ink2}"/>
+              <TextBlock Foreground="{StaticResource Ink2}" Margin="0,3,0,0">
+                <Run Text="Erstellt von Dr. Florian Rasche ·"/>
+                <Hyperlink x:Name="AsklaionLink" NavigateUri="https://www.asklaion.de" Foreground="{StaticResource Ink}"
+                           ToolTip="asklaion.de im Browser öffnen">www.asklaion.de</Hyperlink>
+              </TextBlock>
+            </StackPanel>
             <Button x:Name="QuitBtn" DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Kyklos beenden"/>
           </DockPanel>
         </Border>

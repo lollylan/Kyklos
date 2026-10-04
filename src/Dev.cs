@@ -356,6 +356,8 @@ namespace Kyklos
             sw.ShowGeneral();
             Pump(400);      // Schalter-Animation auslaufen lassen
             Shot(win, Path.Combine(dir, "settings-general.png"));
+            sw.DevScrollGeneral();
+            Shot(win, Path.Combine(dir, "settings-general-end.png"));
 
             win.Width = 1080;
             win.Height = 680;
