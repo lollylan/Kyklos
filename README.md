@@ -3,7 +3,7 @@
 Ein Auswahlrad für Windows: Taste halten, Maus in eine Richtung bewegen, loslassen – und der hinterlegte Text steht im
 Feld, in dem der Cursor schon war. Gebaut für die Praxis, damit Normalbefunde und Textbausteine in unter einer Sekunde in
 der Karteikarte stehen, ohne dass der Blick sie verlässt. Dazu Tastenkombinationen, Programme, Websites, Medientasten,
-Makros und Unterräder – ein Stream Deck in Software, bedient wie ein Auswahlrad aus Computerspielen.
+Makros und Unterräder – eine frei belegbare Schaltzentrale, bedient wie ein Auswahlrad aus Computerspielen.
 
 ![Das Rad am Mauszeiger: die gewählte Taste leuchtet, die Mitte zeigt den Text, der gleich eingefügt wird](docs/rad.png)
 
