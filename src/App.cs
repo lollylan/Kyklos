@@ -15,8 +15,8 @@ using WF = System.Windows.Forms;
 [assembly: AssemblyCompany("Florian Rasche")]
 [assembly: AssemblyDescription("Auswahlrad für Textbausteine und Makros")]
 [assembly: AssemblyCopyright("© 2026 Florian Rasche · MIT-Lizenz")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
 // Ohne diese Angabe behandelt WPF die App wie ein altes Programm und skaliert nicht pro Monitor.
 [assembly: TargetFramework(".NETFramework,Version=v4.8", FrameworkDisplayName = ".NET Framework 4.8")]
 
@@ -24,7 +24,7 @@ namespace Kyklos
 {
     public static class Program
     {
-        public const string Version = "1.0";
+        public const string Version = "1.1";
 
         [STAThread]
         public static int Main(string[] args)
@@ -152,12 +152,12 @@ namespace Kyklos
             if (created || showSettings) ShowSettings();
         }
 
-        void OnTriggerDown(string wheelId)
+        void OnTriggerDown(InputHook.Binding b)
         {
-            var wheel = Config.Wheels.FirstOrDefault(w => w.Id == wheelId);
+            var wheel = Config.Wheels.FirstOrDefault(w => w.Id == b.WheelId);
             if (wheel == null) { InputHook.EndSession(); return; }
             // Alt oder Win allein loszulassen öffnet sonst Menüleiste bzw. Startmenü des Zielprogramms.
-            if (wheel.Trigger.Alt || wheel.Trigger.Win) KeySender.Tap(0xE8);
+            if (b.Trigger.Alt || b.Trigger.Win) KeySender.Tap(0xE8);
             _overlay.Open(wheel);
         }
 
@@ -168,8 +168,8 @@ namespace Kyklos
 
         void ApplyBindings()
         {
-            InputHook.SetBindings(Config.Wheels.Where(w => !w.Trigger.IsEmpty)
-                                               .Select(w => new InputHook.Binding { Trigger = w.Trigger.Clone(), WheelId = w.Id }));
+            InputHook.SetBindings(Config.Wheels.SelectMany(w => w.Triggers
+                                               .Select(t => new InputHook.Binding { Trigger = t.Clone(), WheelId = w.Id })));
         }
 
         /// <summary>Nach jeder Änderung in den Einstellungen: Auslöser sofort übernehmen, Datei kurz darauf schreiben.</summary>

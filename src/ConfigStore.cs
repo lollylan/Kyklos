@@ -188,7 +188,9 @@ namespace Kyklos
             wheel.Slots.Add(TextSlot("HNO", "v:ohr", gruen,
                 "HNO: Rachen reizlos, Tonsillen nicht vergrößert, keine Beläge. Trommelfelle beidseits spiegelnd und intakt. Keine zervikalen Lymphknotenschwellungen.", true));
             wheel.Slots.Add(TextSlot("Allgemein", "v:person", hell,
-                "Patient in gutem Allgemein- und normalem Ernährungszustand, wach, zu allen Qualitäten orientiert, afebril.", true));
+                "Patient in gutem Allgemein- und normalem Ernährungszustand, wach, zu allen Qualitäten orientiert, afebril.\n{oder}\n" +
+                "Guter AZ, normaler EZ. Patient wach und allseits orientiert, {~kein Fieber | afebril | Temperatur im Normbereich}.\n{oder}\n" +
+                "Patient wach, zeitlich, örtlich und zur Person orientiert, in gutem Allgemein- und normalem Ernährungszustand, fieberfrei.", true));
             wheel.Slots.Add(TextSlot("Datum", "v:kalender", tuerkis, "{datum}: "));
             wheel.Slots.Add(new Slot { Label = "Werkzeuge", Icon = "v:werkzeug", Color = orange, Action = tools });
             wheel.Slots.Add(new Slot());

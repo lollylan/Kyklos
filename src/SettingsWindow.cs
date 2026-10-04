@@ -43,14 +43,20 @@ namespace Kyklos
         readonly Button SampleKeep;
         readonly Grid EditorPanel;
         readonly ScrollViewer GeneralPanel;
-        readonly Button AddWheel, DeleteWheel, TriggerBtn, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
-                        KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn;
+        readonly Button AddWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
+                        KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn,
+                        VariantBtn, AlternBtn;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
         readonly ComboBox TypeBox, TextModeBox, MediaBox, AddStepBox;
-        readonly StackPanel Crumbs, Swatches, PText, PKeys, POpen, PUrl, PMedia, PMacro, PFolder, StepsHost, IconHost;
+        readonly StackPanel TriggerGroup, Trigger2Group, Crumbs, Swatches, PText, PKeys, POpen, PUrl, PMedia, PMacro, PFolder, StepsHost, IconHost;
         readonly CheckBox TapSwitch, CursorSwitch, ClipSwitch, AutostartSwitch;
         readonly Slider ScaleSlider;
+        readonly UniformGrid SkinTiles;
+        readonly TextBlock SkinHelp;
         readonly WheelView Preview;
+        readonly Stopwatch _clock = Stopwatch.StartNew();
+        double _lastFrame;
+        bool _ticking;
         readonly IconView IconPreview;
         readonly Popup IconPopup;
 
@@ -84,12 +90,15 @@ namespace Kyklos
             ConfigPathText = F<TextBlock>("ConfigPathText"); VersionText = F<TextBlock>("VersionText");
             EditorPanel = F<Grid>("EditorPanel"); GeneralPanel = F<ScrollViewer>("GeneralPanel");
             AddWheel = F<Button>("AddWheel"); DeleteWheel = F<Button>("DeleteWheel"); TriggerBtn = F<Button>("TriggerBtn");
+            AddTrigger2 = F<Button>("AddTrigger2"); Trigger2Btn = F<Button>("Trigger2Btn"); Trigger2Clear = F<Button>("Trigger2Clear");
+            TriggerGroup = F<StackPanel>("TriggerGroup"); Trigger2Group = F<StackPanel>("Trigger2Group");
             AddSlot = F<Button>("AddSlot"); TestBtn = F<Button>("TestBtn"); RemoveSlot = F<Button>("RemoveSlot");
             MoveCcw = F<Button>("MoveCcw"); MoveCw = F<Button>("MoveCw"); IconBtn = F<Button>("IconBtn"); ImageBtn = F<Button>("ImageBtn");
             IconClear = F<Button>("IconClear"); KeysBtn = F<Button>("KeysBtn"); BrowseBtn = F<Button>("BrowseBtn");
             OpenFolderBtn = F<Button>("OpenFolderBtn"); OpenConfigDir = F<Button>("OpenConfigDir"); ExportBtn = F<Button>("ExportBtn");
             ImportBtn = F<Button>("ImportBtn"); QuitBtn = F<Button>("QuitBtn");
             GapFieldBtn = F<Button>("GapFieldBtn"); GapChoiceBtn = F<Button>("GapChoiceBtn");
+            VariantBtn = F<Button>("VariantBtn"); AlternBtn = F<Button>("AlternBtn");
             WheelName = F<TextBox>("WheelName"); LabelBox = F<TextBox>("LabelBox"); TextBody = F<TextBox>("TextBody");
             PathBox = F<TextBox>("PathBox"); ArgsBox = F<TextBox>("ArgsBox"); UrlBox = F<TextBox>("UrlBox");
             StepDelayBox = F<TextBox>("StepDelayBox"); DelayBox = F<TextBox>("DelayBox");
@@ -105,7 +114,11 @@ namespace Kyklos
             IconPopup = F<Popup>("IconPopup");
             UsageHint = F<TextBlock>("UsageHint"); SampleNote = F<Border>("SampleNote"); SampleKeep = F<Button>("SampleKeep");
 
+            SkinTiles = F<UniformGrid>("SkinTiles"); SkinHelp = F<TextBlock>("SkinHelp");
+
             Preview.EditMode = true;
+            Preview.Motion = SystemParameters.ClientAreaAnimation;
+            Preview.Skin = Skin.Get(Cfg.Settings.Skin);
             BuildChoices();
             Wire();
 
@@ -116,9 +129,11 @@ namespace Kyklos
             _host.Saved += OnSaved;
             _host.SaveFailed += OnSaveFailed;
             _w.Deactivated += (s, e) => CancelRecord();
+            _w.IsVisibleChanged += (s, e) => UpdateTicker();
             _w.Closed += (s, e) =>
             {
                 CancelRecord();
+                if (_ticking) { CompositionTarget.Rendering -= OnFrame; _ticking = false; }
                 _host.Saved -= OnSaved;
                 _host.SaveFailed -= OnSaveFailed;
                 var closed = Closed;
@@ -137,6 +152,13 @@ namespace Kyklos
         public void DevSelect(int i) { SelectSlot(i); }
         public void DevEnterFolder() { EnterFolder(Cur); }
         public void DevHome() { ShowEditor(); SelectWheel(Cfg.Wheels[0]); }
+        public void DevScrollInspector()
+        {
+            DependencyObject d = PText;
+            while (d != null && !(d is ScrollViewer)) d = VisualTreeHelper.GetParent(d);
+            var sv = d as ScrollViewer;
+            if (sv != null) { sv.UpdateLayout(); sv.ScrollToEnd(); }
+        }
 
         void Touch() { _host.ConfigChanged(); }
 
@@ -193,6 +215,46 @@ namespace Kyklos
             }
 
             foreach (var section in Icons.Sections) AddIconSection(section.Key, section.Value);
+
+            foreach (var sk in Skin.All)
+            {
+                var face = new StackPanel();
+                face.Children.Add(new SkinChip(sk) { Width = 76, Height = 76, HorizontalAlignment = HorizontalAlignment.Center });
+                face.Children.Add(new TextBlock { Text = sk.Name, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 7, 0, 0) });
+                var rb = new RadioButton { Style = (Style)_w.FindResource("SkinTile"), GroupName = "Aussehen", Tag = sk.Id, Content = face };
+                rb.Checked += (s, e) =>
+                {
+                    var chosen = Skin.Get((string)((RadioButton)s).Tag);
+                    SkinHelp.Text = chosen.Note;
+                    if (_loading) return;
+                    Cfg.Settings.Skin = chosen.Id;
+                    Preview.Skin = chosen;
+                    UpdateTicker();
+                    Touch();
+                };
+                SkinTiles.Children.Add(rb);
+            }
+        }
+
+        /// <summary>
+        /// Aussehen mit Bewegung (Auge, Lichter, Schnee) brauchen auch in der Vorschau laufende Bilder – nur solange das
+        /// Fenster zu sehen ist.
+        /// </summary>
+        void UpdateTicker()
+        {
+            bool want = Preview.Skin.Animated && _w.IsVisible;
+            if (want == _ticking) return;
+            _ticking = want;
+            _lastFrame = _clock.Elapsed.TotalSeconds;
+            if (want) CompositionTarget.Rendering += OnFrame; else CompositionTarget.Rendering -= OnFrame;
+        }
+
+        void OnFrame(object sender, EventArgs e)
+        {
+            double now = _clock.Elapsed.TotalSeconds, dt = Math.Min(0.05, now - _lastFrame);
+            _lastFrame = now;
+            if (_w.WindowState == WindowState.Minimized || !Preview.IsVisible) return;
+            if (Preview.Tick(dt)) Preview.InvalidateVisual();
         }
 
         void AddIconSection(string title, string[][] icons)
@@ -252,13 +314,14 @@ namespace Kyklos
                 BuildCrumbs();
                 Touch();
             };
-            TriggerBtn.Click += (s, e) => Record(TriggerBtn, true, c =>
+            TriggerBtn.Click += (s, e) => Record(TriggerBtn, true, c => SetTrigger(c, false));
+            AddTrigger2.Click += (s, e) => Record(AddTrigger2, true, c => SetTrigger(c, true));
+            Trigger2Btn.Click += (s, e) => Record(Trigger2Btn, true, c => SetTrigger(c, true));
+            Trigger2Clear.Click += (s, e) =>
             {
-                _wheel.Trigger = c;
-                RebuildWheelList();
-                LoadStage();
-                Touch();
-            });
+                CancelRecord();
+                SetTrigger(new Chord(), true);
+            };
             AddSlot.Click += (s, e) =>
             {
                 if (CurrentSlots.Count >= Wheel.MaxSlots) return;
@@ -286,6 +349,13 @@ namespace Kyklos
                 Preview.InvalidateVisual();
             };
             Preview.MouseLeave += (s, e) => { Preview.Hover = -1; Preview.InvalidateVisual(); };
+            // Das Auge im Halloween-Aussehen folgt dem Zeiger überall im Fenster.
+            _w.PreviewMouseMove += (s, e) =>
+            {
+                var p = e.GetPosition(Preview);
+                Preview.GazeTarget = new Vector(p.X - Preview.ActualWidth / 2, p.Y - Preview.ActualHeight / 2);
+            };
+            _w.MouseLeave += (s, e) => Preview.GazeTarget = new Vector(0, 0);
             Preview.MouseLeftButtonDown += (s, e) =>
             {
                 int i = Preview.HitTest(e.GetPosition(Preview));
@@ -338,6 +408,8 @@ namespace Kyklos
             SampleKeep.Click += (s, e) => { Cur.Action.Sample = false; SlotChanged(); };
             GapFieldBtn.Click += (s, e) => InsertGap("{?", "}", "Bezeichnung");
             GapChoiceBtn.Click += (s, e) => InsertGap("{?", ": Option 1 | Option 2 | Option 3}", "Bezeichnung");
+            VariantBtn.Click += (s, e) => AddVariant();
+            AlternBtn.Click += (s, e) => InsertAlternation();
             TextModeBox.SelectionChanged += (s, e) =>
             {
                 if (_loading || TagOf(TextModeBox) == null) return;
@@ -463,7 +535,7 @@ namespace Kyklos
                 });
                 sp.Children.Add(new TextBlock
                 {
-                    Text = w.Trigger.IsEmpty ? "Kein Auslöser" : w.Trigger.Display() + " halten", FontSize = 12, Foreground = Res("Ink2"),
+                    Text = w.HasTrigger ? w.TriggerDisplay() + " halten" : "Kein Auslöser", FontSize = 12, Foreground = Res("Ink2"),
                     Margin = new Thickness(0, 2, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis
                 });
                 WheelList.Items.Add(new ListBoxItem { Content = sp });
@@ -520,6 +592,13 @@ namespace Kyklos
             _loading = true;
             if (WheelName.Text != _wheel.Name) WheelName.Text = _wheel.Name;
             TriggerBtn.Content = _wheel.Trigger.IsEmpty ? "Taste festlegen" : _wheel.Trigger.Display();
+            bool second = !_wheel.Trigger2.IsEmpty;
+            Trigger2Btn.Content = _wheel.Trigger2.Display();
+            Trigger2Group.Visibility = second ? Visibility.Visible : Visibility.Collapsed;
+            // Erst wenn der erste Auslöser steht, gibt es einen zweiten.
+            AddTrigger2.Visibility = !second && !_wheel.Trigger.IsEmpty ? Visibility.Visible : Visibility.Collapsed;
+            // Ohne Folge-Element hält die Gruppe selbst den Abstand zur Segmentzahl.
+            TriggerGroup.Margin = new Thickness(0, 0, _wheel.Trigger.IsEmpty ? 28 : 0, 8);
             int n = CurrentSlots.Count;
             CountText.Text = n + " Segmente";
             AddSlot.IsEnabled = n < Wheel.MaxSlots;
@@ -527,18 +606,40 @@ namespace Kyklos
             DeleteWheel.Content = "Rad löschen";
             DeleteWheel.Tag = null;
 
-            var clash = Cfg.Wheels.FirstOrDefault(o => o != _wheel && !o.Trigger.IsEmpty && o.Trigger.SameAs(_wheel.Trigger));
-            if (_wheel.Trigger.IsEmpty) TriggerNote.Text = "Ohne Auslöser lässt sich dieses Rad nicht öffnen.";
-            else if (clash != null) TriggerNote.Text = "Diesen Auslöser nutzt auch das Rad „" + clash.Name + "“. Es öffnet sich das Rad, das in der Liste weiter oben steht.";
-            else TriggerNote.Text = "";
+            TriggerNote.Text = TriggerProblem();
             TriggerNote.Visibility = TriggerNote.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-            UsageHint.Text = _wheel.Trigger.IsEmpty
+            UsageHint.Text = !_wheel.HasTrigger
                 ? "Lege oben einen Auslöser fest, um dieses Rad zu öffnen."
-                : "So öffnest du das Rad: " + _wheel.Trigger.Display() + " halten, Maus in eine Richtung bewegen, loslassen.";
+                : "So öffnest du das Rad: " + _wheel.TriggerDisplay() + " halten, Maus in eine Richtung bewegen, loslassen.";
 
             LoadPreview();
             BuildCrumbs();
             _loading = was;
+        }
+
+        void SetTrigger(Chord c, bool second)
+        {
+            if (second) _wheel.Trigger2 = c;
+            else _wheel.Trigger = c;
+            RebuildWheelList();
+            LoadStage();
+            Touch();
+        }
+
+        /// <summary>Warnung unter den Auslösern: fehlt einer, sind beide gleich, oder nutzt ein anderes Rad denselben?</summary>
+        string TriggerProblem()
+        {
+            if (_wheel.Trigger.IsEmpty) return "Ohne Auslöser lässt sich dieses Rad nicht öffnen.";
+            if (_wheel.Trigger2.SameAs(_wheel.Trigger)) return "Beide Auslöser sind gleich. Lege als zweiten eine andere Taste fest.";
+            bool two = !_wheel.Trigger2.IsEmpty;
+            foreach (var t in _wheel.Triggers)
+            {
+                var clash = Cfg.Wheels.FirstOrDefault(o => o != _wheel && o.Triggers.Any(x => x.SameAs(t)));
+                if (clash == null) continue;
+                return (two ? t.Display() + " nutzt" : "Diesen Auslöser nutzt") + " auch das Rad „" + clash.Name +
+                       "“. Es öffnet sich das Rad, das in der Liste weiter oben steht.";
+            }
+            return "";
         }
 
         void BuildCrumbs()
@@ -886,6 +987,37 @@ namespace Kyklos
             TextBody.Select(at + open.Length, name.Length);
         }
 
+        /// <summary>Hängt eine weitere ganze Fassung an; die Schreibmarke steht danach in der neuen Zeile.</summary>
+        void AddVariant()
+        {
+            string t = TextBody.Text.TrimEnd();
+            string nl = Environment.NewLine;    // wie die Eingabetaste im Textfeld
+            TextBody.Text = (t.Length == 0 ? "" : t + nl) + "{oder}" + nl;
+            TextBody.Focus();
+            TextBody.Select(TextBody.Text.Length, 0);
+            TextBody.ScrollToEnd();
+        }
+
+        /// <summary>
+        /// Setzt eine Wechselformulierung an die Schreibmarke. Markierter Text wird zur ersten Formulierung und die Schreibmarke
+        /// steht bei der zweiten; sonst sind beide Platzhalter da und der erste ist markiert.
+        /// </summary>
+        void InsertAlternation()
+        {
+            string picked = TextBody.SelectedText.Trim();
+            int at = TextBody.SelectionStart;
+            if (picked.Length > 0 && picked.IndexOfAny(new[] { '{', '}', '|', '\n' }) < 0)
+            {
+                TextBody.SelectedText = "{~" + picked + " | }";
+                TextBody.Focus();
+                TextBody.Select(at + picked.Length + 5, 0);
+                return;
+            }
+            TextBody.SelectedText = "{~Formulierung 1 | Formulierung 2}";
+            TextBody.Focus();
+            TextBody.Select(at + 2, "Formulierung 1".Length);
+        }
+
         void PickTarget()
         {
             var dlg = new OpenFileDialog { Title = "Programm oder Datei wählen", Filter = "Alle Dateien|*.*", DereferenceLinks = false };
@@ -950,6 +1082,10 @@ namespace Kyklos
             DelayBox.Text = st.PasteDelayMs.ToString();
             DelayBox.IsEnabled = st.RestoreClipboard;
             AutostartSwitch.IsChecked = AutostartOn();
+            foreach (RadioButton rb in SkinTiles.Children) rb.IsChecked = (string)rb.Tag == st.Skin;
+            SkinHelp.Text = Skin.Get(st.Skin).Note;
+            Preview.Skin = Skin.Get(st.Skin);
+            UpdateTicker();
             ConfigPathText.Text = _host.ConfigPath;
             VersionText.Text = "Kyklos " + Program.Version + " · MIT-Lizenz";
             _loading = false;

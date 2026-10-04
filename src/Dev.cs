@@ -197,32 +197,100 @@ namespace Kyklos
         }
 
         /// <summary>Rad über einer hellen, textdichten Fläche – so wie es über der Praxissoftware steht.</summary>
-        static void RenderWheel(string path, List<Slot> slots, string title, int hover, double pointer, bool pointerOn)
+        static void RenderWheel(string path, List<Slot> slots, string title, int hover, double pointer, bool pointerOn,
+                                Skin skin = null, bool desktop = false, Vector? gaze = null)
         {
             const int w = 760, h = 640;
             var view = new WheelView { Width = w, Height = h };
+            view.Skin = skin ?? Skin.Graphit;
             view.SetContent(slots, title, "Mitte bricht ab");
             view.Hover = hover;
             view.PointerOn = pointerOn;
             view.PointerAngle = pointer;
+            view.GazeTarget = gaze ?? (pointerOn ? new Vector(Math.Cos(pointer) * 160, Math.Sin(pointer) * 160) : new Vector(0, 0));
             for (int i = 0; i < 40; i++) view.Tick(0.05);
 
             var back = new DrawingVisual();
             using (var dc = back.RenderOpen())
             {
-                dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, w, h));
-                var line = new SolidColorBrush(Color.FromRgb(0xC9, 0xCD, 0xD3));
-                var rnd = new Random(7);
-                for (int y = 28; y < h - 10; y += 22)
-                    dc.DrawRectangle(line, null, new Rect(32, y, 320 + rnd.Next(380), 7));
+                if (desktop)
+                {
+                    // Bunter Schreibtisch mit Fenstern – darauf zeigt sich, ob das Milchglas trägt.
+                    var sky = new LinearGradientBrush(Color.FromRgb(0x1D, 0x3B, 0x6E), Color.FromRgb(0xE0, 0x7A, 0x4F), 35);
+                    dc.DrawRectangle(sky, null, new Rect(0, 0, w, h));
+                    dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(0xFF, 0xD1, 0x66)), null, new Point(520, 190), 90, 90);
+                    dc.DrawRectangle(Brushes.White, null, new Rect(40, 60, 330, 420));
+                    dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x2B, 0x6C, 0xB0)), null, new Rect(40, 60, 330, 30));
+                    var ink = new SolidColorBrush(Color.FromRgb(0x30, 0x34, 0x3B));
+                    var rnd2 = new Random(3);
+                    for (int y = 110; y < 470; y += 20) dc.DrawRectangle(ink, null, new Rect(56, y, 120 + rnd2.Next(170), 6));
+                    dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x4F)), null, new Rect(430, 380, 300, 220));
+                }
+                else
+                {
+                    dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, w, h));
+                    var line = new SolidColorBrush(Color.FromRgb(0xC9, 0xCD, 0xD3));
+                    var rnd = new Random(7);
+                    for (int y = 28; y < h - 10; y += 22)
+                        dc.DrawRectangle(line, null, new Rect(32, y, 320 + rnd.Next(380), 7));
+                }
+            }
+            var ground = Capture(back, w, h);
+            if (view.Skin.Decor == Decor.Frost)
+            {
+                view.Backdrop = Backdrop.FromImage(ground);
+                view.BackdropRect = new Rect(0, 0, w, h);
             }
             var host = new Grid { Width = w, Height = h };
-            host.Children.Add(new Image { Source = Capture(back, w, h) });
+            host.Children.Add(new Image { Source = ground });
             host.Children.Add(view);
             host.Measure(new Size(w, h));
             host.Arrange(new Rect(0, 0, w, h));
             host.UpdateLayout();
             Save(host, w, h, path);
+        }
+
+        /// <summary>
+        /// Wechsel ins Unterrad als Filmstreifen, so wie ihn das Overlay zeigt: zwei Ansichten (zwei Fenster), das alte Rad
+        /// tritt an seinem Platz zurück, das neue wächst am Zeiger.
+        /// </summary>
+        static void RenderTransition(string path, List<Slot> slots, Skin skin)
+        {
+            const int w = 1120, h = 700, folder = 6;
+            double shift = WheelView.OuterFor(slots.Count) - 10;
+            var old = new WheelView { Width = w, Height = h, Skin = skin, RenderTransform = new TranslateTransform(shift, 0) };
+            old.SetContent(slots, "Befunde", "Mitte bricht ab");
+            old.Hover = folder;
+            for (int i = 0; i < 10; i++) old.Tick(0.05);
+            var sub = new WheelView { Width = w, Height = h, Skin = skin, Deeper = true, Open = 0 };
+            sub.SetContent(slots[folder].Action.Slots, slots[folder].DisplayLabel, "Mitte bricht ab");
+            sub.ResetDecor();
+            var host = new Grid { Width = w, Height = h, Background = Brushes.White };
+            host.Children.Add(old);
+            host.Children.Add(sub);
+
+            var frames = new List<BitmapSource>();
+            double[] at = { 0.02, 0.05, 0.08, 0.11, 0.14, 0.17 };
+            double t = 0;
+            foreach (double target in at)
+            {
+                old.Tick(target - t);
+                sub.Tick(target - t);
+                t = target;
+                old.Recede = Math.Min(1, t / WheelView.RecedeSeconds);
+                sub.Open = Math.Min(1, t / 0.17);
+                old.InvalidateVisual();
+                sub.InvalidateVisual();
+                host.Measure(new Size(w, h));
+                host.Arrange(new Rect(0, 0, w, h));
+                host.UpdateLayout();
+                frames.Add(Capture(host, w, h));
+            }
+            var strip = new DrawingVisual();
+            const double k = 0.42;
+            using (var dc = strip.RenderOpen())
+                for (int i = 0; i < frames.Count; i++) dc.DrawImage(frames[i], new Rect(i * w * k, 0, w * k, h * k));
+            Save(strip, (int)(frames.Count * w * k), (int)(h * k), path);
         }
 
         static BitmapSource Capture(Visual v, int w, int h)
@@ -275,6 +343,11 @@ namespace Kyklos
             win.Show();
             Shot(win, Path.Combine(dir, "settings-text.png"));
 
+            sw.DevSelect(4);
+            sw.DevScrollInspector();
+            Shot(win, Path.Combine(dir, "settings-variants.png"));
+
+
             sw.DevSelect(6);
             Shot(win, Path.Combine(dir, "settings-folder.png"));
             sw.DevEnterFolder();
@@ -288,6 +361,13 @@ namespace Kyklos
             win.Height = 680;
             sw.DevHome();
             Shot(win, Path.Combine(dir, "settings-min.png"));
+            host.Config.Wheels[0].Trigger2 = Chord.Key(0x20, ctrl: true);     // Strg + Leertaste
+            sw.DevHome();
+            Shot(win, Path.Combine(dir, "settings-trigger2-min.png"));
+            win.Width = 1220;
+            win.Height = 800;
+            sw.DevHome();
+            Shot(win, Path.Combine(dir, "settings-trigger2.png"));
             win.Close();
         }
 
@@ -353,6 +433,19 @@ namespace Kyklos
             RenderWheel(Path.Combine(dir, "wheel-kinds-image.png"), kinds, "Arten", 0, -Math.PI / 2, true);
             RenderWheel(Path.Combine(dir, "wheel-kinds-imageonly.png"), kinds, "Arten", 1, -Math.PI / 6, true);
 
+            foreach (var sk in Skin.All)
+            {
+                if (sk == Skin.Graphit) continue;
+                RenderWheel(Path.Combine(dir, "skin-" + sk.Id + "-idle.png"), main.Slots, main.Name, -1, 0, false, sk, false, new Vector(90, 40));
+                RenderWheel(Path.Combine(dir, "skin-" + sk.Id + "-hover.png"), main.Slots, main.Name, 1, -Math.PI / 4 + 0.1, true, sk);
+                RenderWheel(Path.Combine(dir, "skin-" + sk.Id + "-desk.png"), main.Slots, main.Name, 6, Math.PI, true, sk, true);
+                FillShot(Path.Combine(dir, "skin-" + sk.Id + "-fill.png"), "Blutdruck {?Wert} mmHg, Puls {?Rhythmus: regelmäßig | unregelmäßig}.",
+                         "Blutdruck", Palette.Colors[1][0], g => { g[0].Value = "130/85"; g[1].Picked[0] = true; }, 0, sk);
+            }
+
+            RenderTransition(Path.Combine(dir, "transition.png"), main.Slots, Skin.Graphit);
+            RenderTransition(Path.Combine(dir, "transition-halloween.png"), main.Slots, Skin.Halloween);
+
             IconSheet(Path.Combine(dir, "icons.png"));
             RenderFill(dir);
             RenderSettings(dir);
@@ -372,9 +465,9 @@ namespace Kyklos
             FillShot(Path.Combine(dir, "fill-single.png"), "Blutdruck {?Wert} mmHg, Puls regelmäßig.", "", Palette.Default, null, 0);
         }
 
-        static void FillShot(string path, string text, string title, string color, Action<List<Gaps.Gap>> fill, int focus)
+        static void FillShot(string path, string text, string title, string color, Action<List<Gaps.Gap>> fill, int focus, Skin skin = null)
         {
-            var win = FillWindow.DevBuild(text, title, Palette.Parse(color), fill, focus);
+            var win = FillWindow.DevBuild(text, title, Palette.Parse(color), fill, focus, skin);
             win.ShowActivated = false;
             win.Show();
             win.Dispatcher.Invoke(DispatcherPriority.ApplicationIdle, new Action(() => { }));

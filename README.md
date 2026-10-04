@@ -47,11 +47,15 @@ Links die Räder, in der Mitte das Rad zum Anklicken, rechts das gewählte Segme
 sofort.
 
 - **Auslöser** pro Rad: einzelne Taste, Kombination (z. B. Strg + Leertaste), Maus-Seitentaste oder mittlere Maustaste.
-  Schaltfläche anklicken, Taste drücken.
+  Schaltfläche anklicken, Taste drücken. Über **Zweiter Auslöser** öffnet dasselbe Rad auch mit einer weiteren Taste oder
+  Kombination (z. B. `^` oder Strg + Leertaste); das × daneben entfernt ihn wieder.
 - **Segmente**: 2 bis 12 pro Rad. Ziehen vertauscht zwei Segmente, die Pfeile im Inspektor verschieben eins.
 - **Beschriftung, Symbol, Farbe**: Text und/oder Symbol aus der Auswahl oder ein eigenes Bild (PNG, JPG, ICO … oder das
   Symbol einer Exe). Bilder werden verkleinert in der Konfiguration abgelegt.
 - **Aktion testen** startet nach 3 Sekunden – in dieser Zeit ins Zielfeld klicken.
+- **Aussehen** unter *Allgemein*: Graphit (dunkel, Standard), Hell, Milchglas (der Bildschirm schimmert weichgezeichnet
+  durch das Rad), Halloween (in der Mitte ein Auge, das dem Mauszeiger folgt) und Weihnachten (Lichterkette, Schnee,
+  Schneekugel in der Mitte).
 
 ### Aktionen
 
@@ -91,6 +95,24 @@ Kopfschmerzen" verbunden. Steht dieselbe Lücke mehrmals im Text, wird sie einma
 | Esc | Abbrechen, nichts wird eingefügt |
 
 Danach geht der Fokus an das Programm zurück, in dem du warst, und der Text landet an der Schreibmarke.
+
+### Abwechslung
+
+Damit bei Normalbefunden nicht in jeder Karteikarte wortgleich derselbe Baustein steht, kann ein Text mehrere Fassungen
+haben. Eine Zeile `{oder}` trennt sie; beim Auslösen wird eine davon zufällig eingefügt, nie zweimal hintereinander
+dieselbe. Mitten im Satz wechselt `{~… | …}` einzelne Formulierungen:
+
+```
+Hausbesuch: Patient in seinem Grundzustand unverändert, keine neuen Beschwerden.
+{oder}
+Hausbesuch: Zustand gegenüber dem letzten Besuch {~unverändert | stabil}, keine Auffälligkeiten.
+{oder}
+Hausbesuch ohne Auffälligkeiten, Patient {~beschwerdefrei | ohne neue Beschwerden}.
+```
+
+Die Schaltflächen „Weitere Variante" und „Wechselnde Formulierung" unter dem Text setzen beides ein. Das Rad zeigt in der
+Mitte die erste Fassung und wie viele es gibt. Lücken (`{?…}`) dürfen in jeder Fassung stehen; abgefragt wird nur die
+gewählte.
 
 ## Dateien
 

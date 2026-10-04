@@ -15,7 +15,7 @@ namespace Kyklos
     {
         public sealed class Binding { public Chord Trigger; public string WheelId; }
 
-        public static event Action<string> TriggerDown;   // Auslöser gedrückt (Rad-Id)
+        public static event Action<Binding> TriggerDown;  // Auslöser gedrückt (welcher, für welches Rad)
         public static event Action TriggerUp;             // Auslöser losgelassen
         public static event Action Repress;               // Auslöser erneut gedrückt, während das Rad offen steht
         public static event Action Click;                 // Linksklick bei offenem Rad
@@ -194,7 +194,7 @@ namespace Kyklos
             _released = false;
             Eat(vk);
             var down1 = TriggerDown;
-            if (down1 != null) Post(() => down1(b.WheelId));
+            if (down1 != null) Post(() => down1(b));
             return true;
         }
 
@@ -276,7 +276,7 @@ namespace Kyklos
             _released = false;
             Eat(key);
             var down1 = TriggerDown;
-            if (down1 != null) Post(() => down1(b.WheelId));
+            if (down1 != null) Post(() => down1(b));
             return true;
         }
     }

@@ -115,6 +115,62 @@ namespace Kyklos
     }
 
     /// <summary>
+    /// Abwechslung, damit Normalbefunde nicht in jeder Karteikarte denselben Wortlaut tragen:
+    ///   Text A {oder} Text B          ganze Varianten – eine davon wird eingefügt, nie zweimal hintereinander dieselbe
+    ///   {~stabil | unverändert}       eine der Formulierungen, mitten im Satz
+    /// Aufgelöst wird vor den Lücken, damit die Abfrage schon die gewählte Fassung zeigt.
+    /// </summary>
+    public static class Variants
+    {
+        static readonly Regex Separator = new Regex(@"\s*\{oder\}\s*", RegexOptions.IgnoreCase);
+        static readonly Regex Inline = new Regex(@"\{~([^{}]*)\}");
+        static readonly Random Rng = new Random();
+        // Zuletzt gewählte Variante je Text (nicht je Segment, damit es auch nach dem Neuladen der Konfiguration gilt).
+        static readonly Dictionary<string, int> Last = new Dictionary<string, int>();
+
+        /// <summary>Die ganzen Varianten eines Textes; ohne {oder} nur der Text selbst. Nie leer.</summary>
+        public static List<string> Of(string text)
+        {
+            text = text ?? "";
+            if (!Separator.IsMatch(text)) return new List<string> { text };
+            var list = Separator.Split(text).Where(v => v.Trim().Length > 0).ToList();
+            return list.Count > 0 ? list : new List<string> { "" };
+        }
+
+        /// <summary>Wählt eine Variante und löst die Wechselformulierungen darin auf.</summary>
+        public static string Resolve(string text)
+        {
+            text = text ?? "";
+            var list = Of(text);
+            int i = 0;
+            if (list.Count > 1)
+            {
+                int last;
+                bool had = Last.TryGetValue(text, out last) && last < list.Count;
+                i = Rng.Next(had ? list.Count - 1 : list.Count);
+                if (had && i >= last) i++;
+                Last[text] = i;
+            }
+            return Inline.Replace(list[i], m =>
+            {
+                var o = OptionsOf(m);
+                return o.Count == 0 ? "" : o[Rng.Next(o.Count)];
+            });
+        }
+
+        static List<string> OptionsOf(Match m)
+        {
+            return m.Groups[1].Value.Split('|').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
+        }
+
+        /// <summary>Für das Display im Rad: Wechselformulierungen als „stabil / unverändert".</summary>
+        public static string Outline(string text)
+        {
+            return Inline.Replace(text ?? "", m => string.Join(" / ", OptionsOf(m)));
+        }
+    }
+
+    /// <summary>
     /// Fragt die Lücken eines Textes ab. Anders als das Rad nimmt dieses Fenster den Fokus – getippt wird ja hinein.
     /// Danach geht der Fokus an das Programm zurück, das vorher vorn war, und erst dann wird eingefügt.
     /// </summary>
@@ -134,6 +190,7 @@ namespace Kyklos
   <SolidColorBrush x:Key='Text3' Color='#7B808A'/>
   <SolidColorBrush x:Key='FieldHover' Color='#4A4E57'/>
   <SolidColorBrush x:Key='Hot' Color='#FF8A3D'/>
+  <SolidColorBrush x:Key='Ink' Color='#15161A'/>
 
   <Style x:Key='Ring'>
     <Setter Property='Control.Template'>
@@ -194,7 +251,7 @@ namespace Kyklos
             <StackPanel Orientation='Horizontal'>
               <Border x:Name='Box' Width='18' Height='18' CornerRadius='4' BorderThickness='1.5' BorderBrush='{DynamicResource Text2}'
                       Background='Transparent' VerticalAlignment='Center' SnapsToDevicePixels='True'>
-                <Path x:Name='Tick' Data='M3.5,7.8 L6.4,10.6 L11.6,4.6' Stroke='{DynamicResource Chassis}' StrokeThickness='2'
+                <Path x:Name='Tick' Data='M3.5,7.8 L6.4,10.6 L11.6,4.6' Stroke='{DynamicResource Ink}' StrokeThickness='2'
                       StrokeStartLineCap='Round' StrokeEndLineCap='Round' StrokeLineJoin='Round' Visibility='Collapsed'/>
               </Border>
               <ContentPresenter Margin='10,0,0,0' VerticalAlignment='Center' RecognizesAccessKey='False'/>
@@ -224,7 +281,7 @@ namespace Kyklos
   <Style x:Key='Primary' TargetType='Button'>
     <Setter Property='FontSize' Value='13'/>
     <Setter Property='FontWeight' Value='SemiBold'/>
-    <Setter Property='Foreground' Value='{DynamicResource Chassis}'/>
+    <Setter Property='Foreground' Value='{DynamicResource Ink}'/>
     <Setter Property='Background' Value='{DynamicResource Hot}'/>
     <Setter Property='Height' Value='34'/>
     <Setter Property='Padding' Value='16,0'/>
@@ -320,30 +377,36 @@ namespace Kyklos
         readonly List<Control> _firsts = new List<Control>();     // erstes Bedienelement je Lücke
         readonly Button _ok;
         readonly TaskCompletionSource<bool> _done = new TaskCompletionSource<bool>();
-        readonly Brush _hot, _text1, _text2, _text3;
+        readonly Brush _hot, _hotText, _text1, _text2, _text3;
         Gaps.Gap _active;
         bool _finished;
 
         /// <summary>
         /// Zeigt das Fenster am Zeiger und wartet. Ergebnis ist der Text mit gefüllten Lücken, null bei Abbruch.
         /// </summary>
-        public static async Task<string> Ask(string text, string title, Color hot)
+        public static async Task<string> Ask(string text, string title, Color hot, Skin skin)
         {
             IntPtr target = Native.GetForegroundWindow();
-            var f = new FillWindow(text, title, hot);
+            var f = new FillWindow(text, title, hot, skin);
             bool ok = await f.Run();
             string result = ok ? Gaps.Fill(text, f._gaps) : null;
             await GiveBack(target);
             return result;
         }
 
-        FillWindow(string text, string title, Color hot)
+        FillWindow(string text, string title, Color hot, Skin skin)
         {
             _text = text;
             _gaps = Gaps.Parse(text);
             var res = (ResourceDictionary)XamlReader.Parse(Styles);
-            _hot = new SolidColorBrush(hot);
-            _hot.Freeze();
+            // Gerätefarben des gewählten Aussehens. Milchglas wird hier deckend hell: Hinter einem Fenster, in das
+            // getippt wird, soll nichts durchscheinen.
+            var sk = skin == null ? Skin.Graphit : skin.Decor == Decor.Frost ? Skin.Hell : skin;
+            res["Chassis"] = Solid(sk.Chassis); res["Rim"] = Solid(sk.Rim); res["Hub"] = Solid(sk.Hub); res["HubRim"] = Solid(sk.HubRim);
+            res["KeyCap"] = Solid(sk.Key); res["KeyHot"] = Solid(sk.KeyHot); res["Text1"] = Solid(sk.Text); res["Text2"] = Solid(sk.Text2);
+            res["Text3"] = Solid(sk.Text3); res["FieldHover"] = Solid(sk.FieldHover); res["Ink"] = Solid(sk.Ink);
+            _hot = Solid(hot);
+            _hotText = Solid(sk.Tint(hot));
             res["Hot"] = _hot;
             _text1 = (Brush)res["Text1"];
             _text2 = (Brush)res["Text2"];
@@ -605,7 +668,7 @@ namespace Kyklos
                 bool hot = g == _active;
                 var run = new Run(v.Length > 0 ? v : "[" + g.Name + "]")
                 {
-                    Foreground = hot ? _hot : v.Length > 0 ? _text1 : _text3
+                    Foreground = hot ? _hotText : v.Length > 0 ? _text1 : _text3
                 };
                 if (hot) { run.TextDecorations = TextDecorations.Underline; if (activeRun == null) activeRun = run; }
                 _preview.Inlines.Add(run);
@@ -635,12 +698,19 @@ namespace Kyklos
             _done.TrySetResult(ok);
         }
 
+        static SolidColorBrush Solid(Color c)
+        {
+            var b = new SolidColorBrush(c);
+            b.Freeze();
+            return b;
+        }
+
         // ---------------------------------------------------------------- Sichtprüfung (--dev-render)
 
         /// <summary>Baut das Fenster mit Beispielwerten auf, ohne es zu zeigen – für Dev.Render.</summary>
-        public static Window DevBuild(string text, string title, Color hot, Action<List<Gaps.Gap>> fill, int focusGap)
+        public static Window DevBuild(string text, string title, Color hot, Action<List<Gaps.Gap>> fill, int focusGap, Skin skin = null)
         {
-            var f = new FillWindow(text, title, hot);
+            var f = new FillWindow(text, title, hot, skin);
             if (fill != null) fill(f._gaps);
             var chassis = (Border)f._win.Content;
             var fields = (StackPanel)((ScrollViewer)((DockPanel)chassis.Child).Children[3]).Content;

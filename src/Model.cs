@@ -119,8 +119,10 @@ namespace Kyklos
             switch (Type)
             {
                 case ActionType.Text:
-                    string t = Regex.Replace(Gaps.Outline(Text ?? "").Replace("{cursor}", ""), @"\s+", " ").Trim();
+                    var variants = Variants.Of(Text);
+                    string t = Regex.Replace(Variants.Outline(Gaps.Outline(variants[0])).Replace("{cursor}", ""), @"\s+", " ").Trim();
                     if (t.Length == 0) return "Noch kein Text hinterlegt";
+                    if (variants.Count > 1) t = variants.Count + " Varianten · " + t;
                     if (Sample) t = "Beispieltext: " + t;
                     return t.Length > 120 ? t.Substring(0, 118).TrimEnd() + " …" : t;
                 case ActionType.Keys: return Keys.Display();
@@ -283,7 +285,23 @@ namespace Kyklos
         public string Id = Guid.NewGuid().ToString("N").Substring(0, 8);
         public string Name = "Neues Rad";
         public Chord Trigger = new Chord();
+        public Chord Trigger2 = new Chord();     // optionaler zweiter Auslöser für dasselbe Rad
         public List<Slot> Slots = new List<Slot>();
+
+        /// <summary>Alle belegten Auslöser, der erste zuerst.</summary>
+        public IEnumerable<Chord> Triggers
+        {
+            get
+            {
+                if (!Trigger.IsEmpty) yield return Trigger;
+                if (!Trigger2.IsEmpty) yield return Trigger2;
+            }
+        }
+
+        public bool HasTrigger { get { return !Trigger.IsEmpty || !Trigger2.IsEmpty; } }
+
+        /// <summary>„Strg + Leertaste oder Taste ^" – für Seitenleiste und Bedienhinweis.</summary>
+        public string TriggerDisplay() { return string.Join(" oder ", Triggers.Select(t => t.Display())); }
 
         public Dictionary<string, object> ToJson()
         {
@@ -291,6 +309,7 @@ namespace Kyklos
             d["id"] = Id;
             d["name"] = Name ?? "";
             d["trigger"] = Trigger.ToJson();
+            if (!Trigger2.IsEmpty) d["trigger2"] = Trigger2.ToJson();
             d["slots"] = Slots.Select(s => (object)s.ToJson()).ToList();
             return d;
         }
@@ -302,6 +321,10 @@ namespace Kyklos
             w.Name = Json.S(d, "name", "Rad");
             var t = Json.O(d, "trigger");
             if (t != null) w.Trigger = Chord.FromJson(t);
+            var t2 = Json.O(d, "trigger2");
+            if (t2 != null) w.Trigger2 = Chord.FromJson(t2);
+            // Ein zweiter Auslöser ohne ersten rückt nach vorn, damit die Oberfläche ihn zeigt.
+            if (w.Trigger.IsEmpty && !w.Trigger2.IsEmpty) { w.Trigger = w.Trigger2; w.Trigger2 = new Chord(); }
             foreach (var s in Json.A(d, "slots")) w.Slots.Add(Slot.FromJson(s as Dictionary<string, object>));
             Normalize(w.Slots);
             return w;
@@ -326,6 +349,7 @@ namespace Kyklos
         public bool RestoreCursor = true;
         public bool RestoreClipboard = true;
         public int PasteDelayMs = 350;
+        public string Skin = Kyklos.Skin.DefaultId;
 
         public Dictionary<string, object> ToJson()
         {
@@ -335,6 +359,7 @@ namespace Kyklos
             d["restoreCursor"] = RestoreCursor;
             d["restoreClipboard"] = RestoreClipboard;
             d["pasteDelayMs"] = PasteDelayMs;
+            d["skin"] = Skin;
             return d;
         }
 
@@ -346,6 +371,8 @@ namespace Kyklos
             s.RestoreCursor = Json.B(d, "restoreCursor", true);
             s.RestoreClipboard = Json.B(d, "restoreClipboard", true);
             s.PasteDelayMs = Math.Max(50, Math.Min(3000, Json.I(d, "pasteDelayMs", 350)));
+            s.Skin = Json.S(d, "skin", Kyklos.Skin.DefaultId);
+            if (!Kyklos.Skin.Exists(s.Skin)) s.Skin = Kyklos.Skin.DefaultId;
             return s;
         }
     }

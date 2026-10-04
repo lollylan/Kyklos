@@ -279,11 +279,11 @@ namespace Kyklos
 
         static async Task InsertText(ActionDef a, Settings st, Slot origin)
         {
-            string raw = a.Text ?? "";
+            string raw = Variants.Resolve(a.Text);
             if (Gaps.Has(raw))
             {
                 raw = await FillWindow.Ask(raw, origin == null ? "" : origin.DisplayLabel,
-                                           origin == null ? Palette.Parse(Palette.Default) : origin.ColorValue);
+                                           origin == null ? Palette.Parse(Palette.Default) : origin.ColorValue, Skin.Get(st.Skin));
                 if (raw == null) return;    // abgebrochen
             }
             int back;

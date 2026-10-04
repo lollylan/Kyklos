@@ -223,7 +223,8 @@ wird. Graphit ist dort Schrift und Hauptaktion, ein dunkles Orange zeigt ausschl
 Hinweis). Die Oberfläche spricht Deutsch und duzt.
 
 **Key Characteristics:**
-- Opakes Graphit-Gerät mit Tasten in konstant 5 px breiten Fugen; kein Glühen, keine Transparenz am Gerät.
+- Opakes Graphit-Gerät mit Tasten in konstant 5 px breiten Fugen; kein Glühen, keine Transparenz am Gerät. Graphit ist
+  das Standard-Aussehen; vier weitere Aussehen (siehe unten) variieren Material und Schmuck, nie die Geometrie.
 - Acht Tastenfarben: in Ruhe nur am Symbol, unter dem Zeiger auf der ganzen Taste.
 - Display in der Nabe (Ø 168) mit Titel und Vorschau des Ergebnisses.
 - Richtungsmarke in der Fuge zwischen Nabe und Tasten folgt dem Zeiger stufenlos.
@@ -329,8 +330,9 @@ keine eigene Beschriftung, bleibt das Symbol allein. Unterräder tragen einen kl
 
 **Einstellungsfenster.** 1220 × 800, mindestens 1080 × 680. Drei Spalten: Seitenleiste 244 (`Rail`), Bühne (flexibel,
 `Bg`), Inspektor 396 (`Surface`), getrennt durch 1 px `Line`. Die Bühne zeigt oben Radname, Auslöser und Segmentzahl
-(bricht bei schmalem Fenster in zwei Zeilen um), in der Mitte das Gerät (532 × 532, wird nur verkleinert, nie vergrößert),
-unten die Bedienhinweise. Der Inspektor rollt; seine Fußleiste mit der Hauptaktion steht fest. Die Seite „Allgemein" ist
+(bricht bei schmalem Fenster in mehrere Zeilen um), in der Mitte das Gerät (532 × 532, wird nur verkleinert, nie
+vergrößert), unten die Bedienhinweise. Ein zweiter Auslöser steht als ruhige Schaltfläche „+ Zweiter Auslöser"
+(`BtnGhost`) neben dem ersten; belegt wird daraus „oder", Schaltfläche und Symbolschaltfläche × zum Entfernen. Der Inspektor rollt; seine Fußleiste mit der Hauptaktion steht fest. Die Seite „Allgemein" ist
 eine einzelne Spalte, höchstens 600 breit, linksbündig: Zeilen mit 14 Innenabstand und einer Linie darunter, Bedienelement
 rechts.
 
@@ -358,7 +360,8 @@ Tonwerte (`Rail`, `Bg`, `Surface`) und Linien; nur Popups schweben.
 und Flächen bekommen weder Verlauf noch Glanzlicht noch Glühen.
 
 **Die Opak-Regel.** Das Gerät ist vollständig deckend. Durchscheinend sind nur das Ein- und Ausblenden des ganzen Rads
-und kleine Zustandsschleier im Einstellungsfenster (überfahrene Geister-Schaltfläche, Rollbalken, Fokus-Hof).
+und kleine Zustandsschleier im Einstellungsfenster (überfahrene Geister-Schaltfläche, Rollbalken, Fokus-Hof). Einzige
+Ausnahme ist das vom Nutzer gewünschte Aussehen „Milchglas" – dort ist die Durchsicht der Zweck, keine Dekoration.
 
 ## Shapes
 
@@ -387,6 +390,12 @@ Ein Hardware-Bedienteil: schwer, still, eindeutig.
   Taste bleibt beim Ausblenden erleuchtet.
 - **Leere Taste:** `CKeyEmpty`, ohne Inhalt, reagiert nicht; das Display meldet „Frei".
 - **Unterrad:** Winkel am Außenrand. Öffnet sich sofort beim Überfahren des Außenrands, sonst nach 450 ms Verweilen.
+  Übergang statt Sprung: Das alte Rad bleibt als Nachbild an seinem Platz, schrumpft in 160 ms auf 92 % (kubisch
+  abbremsend) und blendet aus (Smoothstep). Das Unterrad wächst am Zeiger in 170 ms von 76 % auf 100 % (kubisch) und ist
+  schon nach einem Fünftel davon deckend, damit nie zwei halb durchsichtige Räder übereinanderliegen. Ohne
+  Windows-Animationen entfällt beides. Technisch zwei Overlay-Fenster im Wechsel: Ein sichtbares durchsichtiges Fenster
+  wird nie verschoben oder vergrößert (es zeigte sonst für ein Bild seinen alten Inhalt an der neuen Stelle), und
+  versteckt wird ein Fenster erst, nachdem es ein leeres Bild gezeigt hat.
 - **Display:** in Ruhe Name des Rads und „Mitte bricht ab"; über einer Taste deren Beschriftung und die Vorschau der
   Aktion.
 - **Richtungsmarke:** folgt dem Zeigerwinkel stufenlos; `CText2` über leeren Tasten, sonst in der Farbe der Taste. In
@@ -443,7 +452,7 @@ Sachlich und flach; die Form sagt „Bedienelement", die Farbe sagt nichts.
 
 ### Navigation
 - **Seitenleiste:** Einträge mit Radius 6 und Innenabstand 10/8; überfahren `HoverRail`, gewählt `Surface` mit Rahmen
-  `Line`. Ein Rad zeigt Namen (13) und darunter den Auslöser (12, `Ink2`). „Allgemein" sitzt unten.
+  `Line`. Ein Rad zeigt Namen (13) und darunter den Auslöser (12, `Ink2`; zwei Auslöser mit „oder" verbunden). „Allgemein" sitzt unten.
 - **Brotkrumen:** über dem Gerät, sobald ein Unterrad bearbeitet wird.
 
 ### Hinweis, Tooltip, Rollbalken
@@ -470,11 +479,38 @@ Sachlich und flach; die Form sagt „Bedienelement", die Farbe sagt nichts.
 
 ### Don't:
 - **Don't** das Rad durchscheinend machen, weichzeichnen oder glühen lassen – verweigert wird der „durchscheinende Donut
-  mit Neon-Glühen und Blur".
+  mit Neon-Glühen und Blur". Ausnahmen nur in ihren Aussehen: Milchglas (echte Weichzeichnung des Hintergrunds, kein
+  Glühen) und die Lichterkette zu Weihnachten.
 - **Don't** Verläufe einsetzen, außer im Schlagschatten unter dem Gerät.
 - **Don't** Tasten in Ruhe einfärben oder Beschriftungen entlang des Bogens drehen.
 - **Don't** `Accent` als Schaltflächenfarbe oder `Palette-Orange` auf hellem Grund verwenden.
 - **Don't** dem Zielprogramm den Fokus nehmen: Das Rad ist ein Gast, kein Fenster. Einzige Ausnahme ist die
   Lückenabfrage, in die getippt wird; sie gibt den Fokus vor dem Einfügen zurück.
 - **Don't** eine dritte Schriftstärke, Versalien-Etiketten oder eine zweite Schrift einführen.
-- **Don't** Rasterbilder ausliefern, die nicht der Code erzeugt; das Programmsymbol entsteht beim Bauen.
+- **Don't** Rasterbilder ausliefern, die nicht der Code erzeugt; das Programmsymbol entsteht beim Bauen. Auch der Schmuck
+  der Aussehen (Auge, Spinne, Lichter, Schnee, Stechpalme) ist Vektorzeichnung in `src/SkinDecor.cs`.
+
+## Aussehen (`src/Skin.cs`, `src/SkinDecor.cs`)
+
+Wählbar unter *Allgemein → Aussehen* (Kacheln mit Mini-Rad, gewählt mit 2-px-Ring `Ink` wie ein Farbfeld), gespeichert
+als `settings.skin`. Geometrie, Tastenfarben, Bewegung und Texte sind in allen Aussehen gleich; es wechseln die
+Gerätefarben, der Schatten und der Schmuck. Die Lückenabfrage übernimmt die Gerätefarben (Milchglas dort deckend hell).
+
+- **Graphit** (`graphit`, Standard): wie oben beschrieben.
+- **Hell** (`hell`): Chassis `#DFE2E6`, Tasten `#FBFBFC`, leere Taste `#E9EBEE`, Display `#F6F7F8`, Schrift `#15161A`,
+  Auswahlkontur Graphit, Schatten schwächer (Alpha 46/64). Symbole und Beschriftungen in Ruhe werden zu Schwarz gemischt,
+  bis sie auf der Tastenkappe 4,5:1 erreichen (`Skin.Tint`); unter dem Zeiger flutet weiter die volle Tastenfarbe.
+- **Milchglas** (`milchglas`): Beim Öffnen wird der Bildschirm um den Zeiger einmal abgegriffen (StretchBlt mit HALFTONE
+  auf 1/6, dann dreifacher Kastenfilter, zusammen ≈ 30 px Weichzeichnung) und unter der Scheibe gezeigt. Darauf weiße
+  Schleier: Chassis 36 %, Tasten 62 %, Display 69 %; Lichtkante oben (1,5 px, Weiß nach unten auslaufend), außen eine
+  dunkle Haarlinie (20 %) für Abstand auf Weiß. Schrift Graphit; Tönung der Tastenfarben wie bei Hell. Unterräder nutzen
+  denselben Abgriff.
+- **Halloween** (`halloween`): Aubergine-Schwarz (`#120D17`, Tasten `#221A2A`), Schrift Knochenweiß `#F2EADC`. Die Nabe
+  ist ein Auge: Lederhaut mit Äderchen, Bernstein-Iris mit Schlitzpupille, die dem Zeiger folgt (bis 38 px, zum Rand
+  perspektivisch schmaler) und sich über einer Taste weitet. Das Auge schlägt sich beim Öffnen auf (320 ms), blinzelt
+  alle 2,5–7 s (170 ms). Über einer Taste legt sich ein dunkler Schleier (69 %) über das Auge und das Display zeigt den
+  Text wie gewohnt. Rechts unten hängt eine Spinne am Faden, die nach dem Öffnen auspendelt.
+- **Weihnachten** (`weihnachten`): Tannengrün (`#0F2A20`, Tasten `#1A3C2E`), Messingblende um das Display. Lichterkette
+  rund um den Rand (fünf Farben, jede Birne funkelt mit eigenem Takt), Schneehaube oben, Stechpalme mit drei Beeren unten,
+  im Display rieselt Schnee hinter der Schrift wie in einer Schneekugel; die Schneewehe bleibt unter der vierten Textzeile.
+- **Ohne Windows-Animationen** stehen Auge, Spinne, Lichter und Schnee still; der Blick folgt dem Zeiger trotzdem.

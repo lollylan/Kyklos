@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace Kyklos
 {
     /// <summary>
-    /// Zeichnet das Rad: Graphit-Scheibe, keilförmige Tasten mit gleich breiten Fugen, Display in der Nabe.
+    /// Zeichnet das Rad: Scheibe, keilförmige Tasten mit gleich breiten Fugen, Display in der Nabe – in den Farben und mit
+    /// dem Schmuck des gewählten Aussehens (<see cref="Skin"/>).
     /// Dieselbe Ansicht dient als Overlay und als anklickbare Vorschau in den Einstellungen.
     /// Alle Maße sind geräteunabhängige Pixel bei Skalierung 1, Ursprung ist die Radmitte.
     /// </summary>
@@ -33,11 +35,7 @@ namespace Kyklos
             return p;
         }
 
-        static readonly Color CChassis = C("#15161A"), CKey = C("#26282E"), CKeyHot = C("#343841"), CKeyEmpty = C("#1B1C20"),
-                              CText = C("#EDEEF0"), CText2 = C("#A4A9B1"), CDark = C("#15161A");
-        static readonly Brush BChassis = B(CChassis), BHub = B(C("#0A0B0D")), BBezel = B(C("#1D1F24")), BSeat = B(C("#0C0D10")), BText = B(CText), BText2 = B(CText2),
-                              BText3 = B(C("#7B808A")), BDark = B(CDark), BKeyEmpty = B(CKeyEmpty);
-        static readonly Pen PRim = P(C("#2E3036"), 1), PHubRim = P(C("#2A2C32"), 1), PSelect = P(Colors.White, 2);
+        static readonly Pen PFrostEdge = P(Color.FromArgb(0x33, 0, 0, 0), 1);
         static readonly FontFamily Ui = new FontFamily("Segoe UI");
         static readonly Typeface Regular = new Typeface(Ui, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         static readonly Typeface Semibold = new Typeface(Ui, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
@@ -52,6 +50,13 @@ namespace Kyklos
         int _hubFor = int.MinValue;
         double _outer = 222, _ppd = 1;
         Brush _contact, _ambient;
+        Pen _sheen;
+        Skin _skin = Skin.Graphit;
+
+        // Schmuck: Uhr, Blick des Auges, Lider, Schleier über dem Auge, solange das Display Text zeigt.
+        static readonly Random Rnd = new Random();
+        double _time, _sinceOpen = 10, _veil, _blinkAt = -1, _nextBlink = 3;
+        Vector _gaze;
 
         public int Hover = -1;          // Segment unter dem Zeiger
         public int Selected = -1;       // gewähltes Segment (nur Einstellungen)
@@ -63,8 +68,26 @@ namespace Kyklos
         public double Scale = 1;
         public double Open = 1;         // 0..1, Einblendung
         public double Fade = 1;         // 1..0, Ausblendung
+        public Vector GazeTarget;       // Zeiger relativ zur Radmitte (DIP bei Skalierung 1) – dorthin schaut das Auge
+        public BitmapSource Backdrop;   // Milchglas: weichgezeichneter Bildschirm hinter dem Fenster
+        public Rect BackdropRect;       // wo dieses Bild in der Ansicht liegt
+        public bool Deeper;             // Unterrad: wächst stärker aus der Ordner-Taste heraus
+        public double Recede;           // 0..1: Wechsel ins Unterrad – dieses Rad tritt zurück und blendet aus
+
+        public const double RecedeSeconds = 0.16;
 
         public WheelView() { RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.HighQuality); }
+
+        public Skin Skin
+        {
+            get { return _skin; }
+            set
+            {
+                _skin = value ?? Skin.Graphit;
+                Shadows();
+                Refresh();
+            }
+        }
 
         public int Count { get { return _slots.Count; } }
         public double Outer { get { return _outer; } }
@@ -84,9 +107,34 @@ namespace Kyklos
                 double mid = -Math.PI / 2 + i * step;
                 _geo[i] = BuildKey(InnerRadius, _outer - RimWidth, mid - step / 2, mid + step / 2, KeyGap, KeyCorner);
             }
-            _contact = Falloff(_outer - 6, _outer + 10, 132, 1.6);
-            _ambient = Falloff(_outer - 30, _outer + 60, 74, 2.0);
+            Shadows();
             Refresh();
+        }
+
+        void Shadows()
+        {
+            _contact = Falloff(_outer - 6, _outer + 10, _skin.Contact, 1.6);
+            _ambient = Falloff(_outer - 30, _outer + 60, _skin.Ambient, 2.0);
+            if (_skin.Decor == Decor.Frost && _sheen == null)
+            {
+                // Lichtkante des Glases: oben hell, zu den Seiten auslaufend.
+                var g = new LinearGradientBrush { StartPoint = new Point(0.5, 0), EndPoint = new Point(0.5, 1) };
+                g.GradientStops.Add(new GradientStop(Color.FromArgb(0xF0, 255, 255, 255), 0));
+                g.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 255, 255, 255), 0.55));
+                g.Freeze();
+                _sheen = new Pen(g, 1.5);
+                _sheen.Freeze();
+            }
+        }
+
+        /// <summary>Beim Erscheinen des Rads: Das Auge schlägt sich auf, die Spinne pendelt neu aus.</summary>
+        public void ResetDecor()
+        {
+            _sinceOpen = Motion ? 0 : 10;
+            _gaze = GazeTarget;
+            _veil = 0;
+            _blinkAt = -1;
+            _nextBlink = _time + 2.5 + Rnd.NextDouble() * 3;
         }
 
         /// <summary>Nach Änderungen an Beschriftung, Symbol oder Aktion: Textlayouts verwerfen und neu zeichnen.</summary>
@@ -113,7 +161,39 @@ namespace Kyklos
                 _glow[i] = g;
                 moving = true;
             }
+            if (_skin.Animated)
+            {
+                _time += dt;
+                _sinceOpen += dt;
+                double veil = Hover >= 0 || Flash >= 0 ? 1 : 0;
+                if (Motion)
+                {
+                    _gaze += (GazeTarget - _gaze) * (1 - Math.Exp(-dt / 0.06));
+                    _veil += (veil - _veil) * (1 - Math.Exp(-dt / 0.05));
+                    if (_blinkAt < 0 && _time > _nextBlink && _veil < 0.5) _blinkAt = _time;
+                    if (_blinkAt >= 0 && _time - _blinkAt > SkinDecor.BlinkSeconds)
+                    {
+                        _blinkAt = -1;
+                        _nextBlink = _time + 2.5 + Rnd.NextDouble() * 4.5;
+                    }
+                    moving = true;
+                }
+                else
+                {
+                    moving |= _gaze != GazeTarget || _veil != veil;
+                    _gaze = GazeTarget;
+                    _veil = veil;
+                }
+            }
             return moving;
+        }
+
+        double Closure()
+        {
+            if (!Motion) return 0;
+            double c = 1 - EaseOut(Math.Min(1, _sinceOpen / SkinDecor.OpenEyeSeconds));
+            if (_blinkAt >= 0) c = Math.Max(c, Math.Sin(Math.PI * Math.Min(1, (_time - _blinkAt) / SkinDecor.BlinkSeconds)));
+            return c;
         }
 
         public static int IndexFromAngle(double angle, int n)
@@ -181,7 +261,8 @@ namespace Kyklos
 
         static Color Lerp(Color a, Color b, double t)
         {
-            return Color.FromRgb((byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
+            return Color.FromArgb((byte)(a.A + (b.A - a.A) * t), (byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t),
+                                  (byte)(a.B + (b.B - a.B) * t));
         }
 
         static double EaseOut(double t) { return t >= 1 ? 1 : 1 - Math.Pow(2, -10 * t); }
@@ -202,18 +283,41 @@ namespace Kyklos
             int n = _slots.Count;
             if (n == 0) return;
             _ppd = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-            double e = EaseOut(Open);
-            double alpha = Math.Max(0, Math.Min(1, e * Fade));
+            // Das Unterrad wächst gleichmäßiger heran (kubisch) als das erste Rad, das sofort dastehen soll.
+            double e = Deeper ? 1 - Math.Pow(1 - Math.Min(1, Open), 3) : EaseOut(Open);
+            // Das Unterrad ist schon nach einem Fünftel des Wachsens deckend und legt sich als neue Ebene über das
+            // zurücktretende alte – zwei halb durchsichtige Räder übereinander wären unruhig.
+            double show = Deeper ? Math.Min(1, Open / 0.2) : e;
+            // Zurücktreten: Größe bremst weich ab (kubisch), die Deckkraft hält erst und fällt dann (Smoothstep) – so bleibt
+            // das alte Rad lange genug sichtbar, dass das Auge dem Wechsel folgen kann.
+            double rec = Math.Max(0, Math.Min(1, Recede));
+            double alpha = Math.Max(0, Math.Min(1, show * Fade * (1 - rec * rec * (3 - 2 * rec))));
             if (alpha < 0.004) return;
-            double s = Scale * (0.94 + 0.06 * e) * (1 + 0.02 * (1 - Fade));
+            double grow = Deeper ? 0.24 : 0.06;
+            double s = Scale * (1 - grow + grow * e) * (1 + 0.02 * (1 - Fade)) * (1 - 0.08 * (1 - Math.Pow(1 - rec, 3)));
 
             if (alpha < 0.996) dc.PushOpacity(alpha);
-            dc.PushTransform(new MatrixTransform(s, 0, 0, s, ActualWidth / 2, ActualHeight / 2));
+            var sk = _skin;
+            bool frost = sk.Decor == Decor.Frost;
+            var center = new Point(ActualWidth / 2, ActualHeight / 2);
+            dc.PushTransform(new MatrixTransform(s, 0, 0, s, center.X, center.Y));
 
             // Zwei Schichten, beide nach unten versetzt: weiter Raumschatten und enger Kontaktschatten.
             dc.DrawEllipse(_ambient, null, new Point(0, 22), _outer + 60, _outer + 60);
             dc.DrawEllipse(_contact, null, new Point(0, 5), _outer + 10, _outer + 10);
-            dc.DrawEllipse(BChassis, PRim, new Point(0, 0), _outer - 0.5, _outer - 0.5);
+
+            // Milchglas: unter der Scheibe der weichgezeichnete Bildschirm. Er steht beim Einblenden still, nur die
+            // Scheibe wächst – wie eine Glasplatte, die über das Bild gelegt wird.
+            if (frost && Backdrop != null)
+            {
+                dc.Pop();
+                dc.PushClip(new EllipseGeometry(center, _outer * s, _outer * s));
+                dc.DrawImage(Backdrop, BackdropRect);
+                dc.Pop();
+                dc.PushTransform(new MatrixTransform(s, 0, 0, s, center.X, center.Y));
+            }
+            dc.DrawEllipse(sk.BChassis, sk.PRim, new Point(0, 0), _outer - 0.5, _outer - 0.5);
+            if (frost) dc.DrawEllipse(null, PFrostEdge, new Point(0, 0), _outer + 0.5, _outer + 0.5);
 
             double step = 2 * Math.PI / n;
             for (int i = 0; i < n; i++)
@@ -223,20 +327,23 @@ namespace Kyklos
                 double g = EditMode ? (i == Selected && !empty ? 1 : 0) : _glow[i];
                 double mid = -Math.PI / 2 + i * step;
                 Brush fill;
-                if (empty) fill = EditMode && i == Hover ? B(CKey) : BKeyEmpty;
-                else fill = B(Lerp(EditMode && i == Hover && i != Selected ? CKeyHot : CKey, slot.ColorValue, g));
+                if (empty) fill = EditMode && i == Hover ? sk.BKey : sk.BKeyEmpty;
+                else fill = B(Lerp(EditMode && i == Hover && i != Selected ? sk.KeyHot : sk.Key, slot.ColorValue, g));
 
                 double lift = Motion ? LiftPx * g : 0;
                 if (lift > 0.01)
                 {
                     // Die gehobene Taste hinterlässt eine dunkle Mulde – so liest sich der Versatz als Hub, nicht als Verrutschen.
-                    dc.DrawGeometry(BSeat, null, _geo[i]);
+                    dc.DrawGeometry(sk.BSeat, null, _geo[i]);
                     dc.PushTransform(new TranslateTransform(Math.Cos(mid) * lift, Math.Sin(mid) * lift));
                 }
-                dc.DrawGeometry(fill, EditMode && i == Selected ? PSelect : null, _geo[i]);
+                dc.DrawGeometry(fill, EditMode && i == Selected ? sk.PSelect : null, _geo[i]);
                 DrawKeyContent(dc, i, slot, mid, g > 0.5);
                 if (lift > 0.01) dc.Pop();
             }
+
+            if (sk.Decor == Decor.Xmas) SkinDecor.DrawXmas(dc, _outer, _time, Motion);
+            if (frost) dc.DrawEllipse(null, _sheen, new Point(0, 0), _outer - 1.25, _outer - 1.25);
 
             DrawHub(dc, n);
 
@@ -250,8 +357,10 @@ namespace Kyklos
                     c.ArcTo(Polar(r, PointerAngle + d), new Size(r, r), 0, false, SweepDirection.Clockwise, true, true);
                 }
                 bool onKey = Hover >= 0 && Hover < n && !_slots[Hover].IsEmpty;
-                dc.DrawGeometry(null, P(onKey ? _slots[Hover].ColorValue : CText2, 4), sg);
+                dc.DrawGeometry(null, P(onKey ? sk.Tint(_slots[Hover].ColorValue) : sk.Text2, 4), sg);
             }
+
+            if (sk.Decor == Decor.Eye) SkinDecor.DrawSpider(dc, _outer, _time, _sinceOpen, Motion);
 
             dc.Pop();
             if (alpha < 0.996) dc.Pop();
@@ -265,7 +374,7 @@ namespace Kyklos
 
             if (slot.IsEmpty)
             {
-                if (EditMode) Icons.Draw(dc, "v:plus", null, new Rect(px - 10, py - 10, 20, 20), BText3, _ppd);
+                if (EditMode) Icons.Draw(dc, "v:plus", null, new Rect(px - 10, py - 10, 20, 20), _skin.BText3, _ppd);
                 return;
             }
 
@@ -276,13 +385,13 @@ namespace Kyklos
             bool showLabel = label.Length > 0 && !(hasIcon && string.IsNullOrWhiteSpace(slot.Label));
 
             // Die Farbe der Taste trägt im Ruhezustand das oberste Element: das Symbol, sonst die Beschriftung.
-            Brush tint = lit ? BDark : B(slot.ColorValue);
+            Brush tint = lit ? _skin.BInk : B(_skin.Tint(slot.ColorValue));
             double labelY = hasIcon && showLabel ? py + (hasImage ? 20.5 : 15.5) : py;
             double maxW = LabelWidth(i, px, labelY, mid, folder);
 
             if (hasIcon && showLabel)
             {
-                var ft = Label(i, label, lit, lit ? BDark : BText, 12.5, maxW, 2);
+                var ft = Label(i, label, lit, lit ? _skin.BInk : _skin.BText, 12.5, maxW, 2);
                 double icon = hasImage ? 36 : 26, gap = 5, top = py - (icon + gap + ft.Height) / 2;
                 Icons.Draw(dc, slot.Icon, slot.Bitmap, new Rect(px - icon / 2, top, icon, icon), tint, _ppd);
                 dc.DrawText(ft, new Point(px - maxW / 2, top + icon + gap));
@@ -304,7 +413,7 @@ namespace Kyklos
                 double c = Math.Cos(mid), s = Math.Sin(mid);
                 Point tip = new Point(c * (rOut - 8), s * (rOut - 8));
                 Point back = new Point(c * (rOut - 12.5), s * (rOut - 12.5));
-                var pen = P(lit ? CDark : CText2, 1.75);
+                var pen = P(lit ? _skin.Ink : _skin.Text2, 1.75);
                 dc.DrawLine(pen, new Point(back.X - s * 5.5, back.Y + c * 5.5), tip);
                 dc.DrawLine(pen, new Point(back.X + s * 5.5, back.Y - c * 5.5), tip);
             }
@@ -344,11 +453,26 @@ namespace Kyklos
 
         void DrawHub(DrawingContext dc, int n)
         {
-            // Blende und eingelassenes Display: der Ring macht aus der dunklen Scheibe eine Anzeige.
-            dc.DrawEllipse(BBezel, PHubRim, new Point(0, 0), HubRadius, HubRadius);
-            dc.DrawEllipse(BHub, null, new Point(0, 0), HubRadius - 4, HubRadius - 4);
-
+            var sk = _skin;
             int key = Hover >= 0 && Hover < n ? Hover : -1;
+            bool eye = sk.Decor == Decor.Eye;
+            if (eye)
+            {
+                // Halloween: In der Nabe sitzt ein Auge. Zeigt das Display Text, legt sich ein Schatten darüber.
+                SkinDecor.DrawEye(dc, sk, _gaze, Closure(), _veil);
+                if (_veil > 0.004)
+                    dc.DrawEllipse(new SolidColorBrush(Color.FromArgb((byte)(176 * _veil), 8, 3, 6)), null, new Point(0, 0),
+                                   HubRadius - 4, HubRadius - 4);
+                if (key < 0 || _veil < 0.004) return;
+            }
+            else
+            {
+                // Blende und eingelassenes Display: der Ring macht aus der Scheibe eine Anzeige.
+                dc.DrawEllipse(sk.BBezel, sk.PHubRim, new Point(0, 0), HubRadius, HubRadius);
+                dc.DrawEllipse(sk.BHub, null, new Point(0, 0), HubRadius - 4, HubRadius - 4);
+                if (sk.Decor == Decor.Xmas) SkinDecor.DrawSnowGlobe(dc, _time, Motion);
+            }
+
             if (_hubFor != key)
             {
                 _hubFor = key;
@@ -357,16 +481,18 @@ namespace Kyklos
                 else if (_slots[key].IsEmpty) { title = "Frei"; desc = EditMode ? "Anklicken und belegen" : "Keine Aktion"; }
                 else { title = _slots[key].DisplayLabel; desc = _slots[key].Action.Summary(); }
                 if (title == desc) desc = "";
-                _hubTitle = title.Length > 0 ? Text(title, Semibold, 15, BText, 128, 2) : null;
+                _hubTitle = title.Length > 0 ? Text(title, Semibold, 15, sk.BText, 128, 2) : null;
                 int lines = _hubTitle != null && _hubTitle.Height > 26 ? 3 : 4;
-                _hubDesc = desc.Length > 0 ? Text(desc, Regular, 13, BText2, 126, lines) : null;
+                _hubDesc = desc.Length > 0 ? Text(desc, Regular, 13, sk.BText2, 126, lines) : null;
             }
 
             double th = _hubTitle != null ? _hubTitle.Height : 0, dh = _hubDesc != null ? _hubDesc.Height : 0;
             double gap = th > 0 && dh > 0 ? 5 : 0;
             double y = -(th + gap + dh) / 2 - 1;
+            if (eye) dc.PushOpacity(_veil);
             if (_hubTitle != null) dc.DrawText(_hubTitle, new Point(-64, y));
             if (_hubDesc != null) dc.DrawText(_hubDesc, new Point(-63, y + th + gap));
+            if (eye) dc.Pop();
         }
     }
 }

@@ -416,6 +416,35 @@
     </Setter>
   </Style>
 
+  <!-- Kachel der Aussehen-Auswahl: Mini-Rad mit Namen. Gewählt wie ein Farbfeld: Ring in Graphit. -->
+  <Style x:Key="SkinTile" TargetType="RadioButton">
+    <Setter Property="Margin" Value="4,0"/>
+    <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <Grid Background="Transparent">
+            <Border x:Name="face" CornerRadius="8" Background="Transparent" Padding="6,10,6,9">
+              <ContentPresenter/>
+            </Border>
+            <Border x:Name="ring" CornerRadius="8" BorderBrush="{StaticResource Ink}" BorderThickness="2" Opacity="0"/>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="ring" Property="Opacity" Value="0.35"/>
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="ring" Property="Opacity" Value="1"/>
+              <Setter TargetName="face" Property="Background" Value="{StaticResource Surface}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- Seitenleiste -->
   <Style x:Key="RailItem" TargetType="ListBoxItem">
     <Setter Property="Foreground" Value="{StaticResource Ink}"/>

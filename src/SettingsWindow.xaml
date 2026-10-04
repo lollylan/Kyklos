@@ -65,10 +65,28 @@
           </DockPanel>
           <!-- Bricht bei schmalem Fenster in zwei Zeilen um. -->
           <WrapPanel Margin="0,12,0,0">
-            <StackPanel Orientation="Horizontal" Margin="0,0,28,8">
+            <StackPanel x:Name="TriggerGroup" Orientation="Horizontal" Margin="0,0,0,8">
               <TextBlock Text="Auslöser" Style="{StaticResource InlineLabel}"/>
               <Button x:Name="TriggerBtn" Style="{StaticResource Btn}" MinWidth="112"
                       ToolTip="Anklicken, dann die Taste, Tastenkombination oder Maus-Seitentaste drücken, die das Rad öffnen soll"/>
+            </StackPanel>
+            <!-- Zweiter Auslöser: leer nur als ruhige Hinzufügen-Schaltfläche, belegt mit „oder" und Entfernen.
+                 Eigene Elemente im WrapPanel, damit bei schmalem Fenster nichts abgeschnitten wird. -->
+            <Button x:Name="AddTrigger2" Style="{StaticResource BtnGhost}" Margin="8,0,28,8"
+                    ToolTip="Eine weitere Taste oder Kombination festlegen, die dasselbe Rad öffnet">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE710;" Style="{StaticResource Glyph}" FontSize="11" Margin="0,1,8,0"/>
+                <TextBlock Text="Zweiter Auslöser"/>
+              </StackPanel>
+            </Button>
+            <StackPanel x:Name="Trigger2Group" Orientation="Horizontal" Margin="0,0,28,8">
+              <TextBlock Text="oder" Style="{StaticResource InlineLabel}" Margin="10,0,10,0"/>
+              <Button x:Name="Trigger2Btn" Style="{StaticResource Btn}" MinWidth="112"
+                      ToolTip="Anklicken, dann die zweite Taste, Tastenkombination oder Maus-Seitentaste drücken"/>
+              <Button x:Name="Trigger2Clear" Style="{StaticResource BtnIcon}" Margin="4,0,0,0" VerticalAlignment="Center"
+                      ToolTip="Zweiten Auslöser entfernen">
+                <TextBlock Text="&#xE711;" Style="{StaticResource Glyph}" FontSize="11"/>
+              </Button>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
               <TextBlock x:Name="CountText" Style="{StaticResource InlineLabel}"/>
@@ -160,6 +178,13 @@
                 </StackPanel>
                 <TextBlock Style="{StaticResource Help}"
                            Text="{}{?Tage} fragt beim Auslösen einen Wert ab, {?Symptome: Husten | Schnupfen | Fieber} lässt ankreuzen – eingefügt als „Husten und Fieber“. Erst wenn alles ausgefüllt ist, kommt der Text ins Feld."/>
+                <TextBlock Text="Abwechslung" Style="{StaticResource FieldLabel}"/>
+                <StackPanel Orientation="Horizontal">
+                  <Button x:Name="VariantBtn" Style="{StaticResource Btn}" Content="Weitere Variante"/>
+                  <Button x:Name="AlternBtn" Style="{StaticResource Btn}" Content="Wechselnde Formulierung" Margin="8,0,0,0"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Help}"
+                           Text="{}{oder} auf eigener Zeile trennt ganze Fassungen eines Befunds – eingefügt wird eine davon, nie zweimal hintereinander dieselbe. {~stabil | unverändert} wechselt einzelne Wörter mitten im Satz. So steht nicht in jeder Karteikarte derselbe Wortlaut."/>
                 <TextBlock Text="Einfügen per" Style="{StaticResource FieldLabel}"/>
                 <ComboBox x:Name="TextModeBox"/>
               </StackPanel>
@@ -212,7 +237,15 @@
       <StackPanel Margin="40,26,40,40" MaxWidth="600" HorizontalAlignment="Left">
         <TextBlock Text="Allgemein" FontSize="22" FontWeight="SemiBold"/>
 
-        <TextBlock Text="Bedienung" Style="{StaticResource SectionTitle}" Margin="0,24,0,4"/>
+        <TextBlock Text="Aussehen" Style="{StaticResource SectionTitle}" Margin="0,24,0,4"/>
+        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
+          <StackPanel>
+            <UniformGrid x:Name="SkinTiles" Columns="5" Margin="-4,0"/>
+            <TextBlock x:Name="SkinHelp" Style="{StaticResource Help}" Margin="0,12,0,0"/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="Bedienung" Style="{StaticResource SectionTitle}"/>
         <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
           <CheckBox x:Name="TapSwitch" Style="{StaticResource Switch}">
             <StackPanel>
