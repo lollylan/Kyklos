@@ -44,7 +44,7 @@ namespace Kyklos
         readonly Grid EditorPanel;
         readonly ScrollViewer GeneralPanel;
         readonly Button AddWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
-                        KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn,
+                        KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn, GapPickBtn,
                         VariantBtn, AlternBtn;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
         readonly ComboBox TypeBox, TextModeBox, MediaBox, AddStepBox;
@@ -97,7 +97,7 @@ namespace Kyklos
             IconClear = F<Button>("IconClear"); KeysBtn = F<Button>("KeysBtn"); BrowseBtn = F<Button>("BrowseBtn");
             OpenFolderBtn = F<Button>("OpenFolderBtn"); OpenConfigDir = F<Button>("OpenConfigDir"); ExportBtn = F<Button>("ExportBtn");
             ImportBtn = F<Button>("ImportBtn"); QuitBtn = F<Button>("QuitBtn");
-            GapFieldBtn = F<Button>("GapFieldBtn"); GapChoiceBtn = F<Button>("GapChoiceBtn");
+            GapFieldBtn = F<Button>("GapFieldBtn"); GapChoiceBtn = F<Button>("GapChoiceBtn"); GapPickBtn = F<Button>("GapPickBtn");
             VariantBtn = F<Button>("VariantBtn"); AlternBtn = F<Button>("AlternBtn");
             WheelName = F<TextBox>("WheelName"); LabelBox = F<TextBox>("LabelBox"); TextBody = F<TextBox>("TextBody");
             PathBox = F<TextBox>("PathBox"); ArgsBox = F<TextBox>("ArgsBox"); UrlBox = F<TextBox>("UrlBox");
@@ -409,6 +409,7 @@ namespace Kyklos
             SampleKeep.Click += (s, e) => { Cur.Action.Sample = false; SlotChanged(); };
             GapFieldBtn.Click += (s, e) => InsertGap("{?", "}", "Bezeichnung");
             GapChoiceBtn.Click += (s, e) => InsertGap("{?", ": Option 1 | Option 2 | Option 3}", "Bezeichnung");
+            GapPickBtn.Click += (s, e) => InsertGap("{?", ": ja / nein / unbekannt}", "Bezeichnung");
             VariantBtn.Click += (s, e) => AddVariant();
             AlternBtn.Click += (s, e) => InsertAlternation();
             TextModeBox.SelectionChanged += (s, e) =>

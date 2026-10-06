@@ -465,6 +465,13 @@ namespace Kyklos
                 g[1].Picked[0] = g[1].Picked[1] = g[1].Picked[3] = true;
             }, 1);
             FillShot(Path.Combine(dir, "fill-single.png"), "Blutdruck {?Wert} mmHg, Puls regelmäßig.", "", Palette.Default, null, 0);
+            const string tick = "Zeckenstich vor {?Tage} Tagen. FSME-Impfung aktuell: {?FSME-Impfung: ja / nein / unbekannt}. " +
+                                "Dosis {?Dosis: 1/2 / 1 / 2} Tabletten.";
+            FillShot(Path.Combine(dir, "fill-pick.png"), tick, "Zeckenstich", Palette.Colors[5][0], g =>
+            {
+                g[0].Value = "2";
+                g[1].Picked[2] = true;
+            }, 1);
         }
 
         static void FillShot(string path, string text, string title, string color, Action<List<Gaps.Gap>> fill, int focus, Skin skin = null)

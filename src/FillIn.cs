@@ -18,16 +18,20 @@ namespace Kyklos
     /// Lücken im Text, die erst beim Einfügen gefüllt werden:
     ///   {?Tage}                                   Eingabefeld
     ///   {?Symptome: Husten | Schnupfen | Fieber}  Mehrfachauswahl, wird zu „Husten, Schnupfen und Fieber"
+    ///   {?FSME-Impfung: ja / nein / unbekannt}    Entweder-oder, genau eine Option
+    /// Ein Schrägstrich zwischen zwei Ziffern (1/2, 5/10 mg) trennt keine Optionen.
     /// Steht dieselbe Lücke mehrmals im Text, wird sie einmal abgefragt.
     /// </summary>
     public static class Gaps
     {
         static readonly Regex Pattern = new Regex(@"\{\?([^{}:]*)(?::([^{}]*))?\}");
+        static readonly Regex Slash = new Regex(@"\s*(?:(?<!\d)/|/(?!\d))\s*");
 
         public sealed class Gap
         {
             public string Key, Name;
             public List<string> Options;    // null = Eingabefeld
+            public bool Single;             // Entweder-oder statt Mehrfachauswahl
             public string Value = "";
             public bool[] Picked;
 
@@ -48,17 +52,23 @@ namespace Kyklos
             return n.Length > 0 ? n : "Lücke";
         }
 
-        static List<string> OptionsOf(Match m)
+        /// <summary>Mit | getrennt: Mehrfachauswahl. Nur mit / getrennt: Entweder-oder.</summary>
+        static List<string> OptionsOf(Match m, out bool single)
         {
+            single = false;
             if (!m.Groups[2].Success) return null;
-            var o = m.Groups[2].Value.Split('|').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
+            string raw = m.Groups[2].Value;
+            single = raw.IndexOf('|') < 0 && Slash.IsMatch(raw);
+            var o = (single ? Slash.Split(raw) : raw.Split('|')).Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
+            if (o.Count < 2) single = false;    // eine einzelne Option bleibt ein Kästchen zum Ankreuzen
             return o.Count > 0 ? o : null;
         }
 
         static string KeyOf(Match m)
         {
-            var o = OptionsOf(m);
-            return NameOf(m) + "\n" + (o == null ? "" : string.Join("\n", o));
+            bool single;
+            var o = OptionsOf(m, out single);
+            return NameOf(m) + "\n" + (o == null ? "" : (single ? "/\n" : "|\n") + string.Join("\n", o));
         }
 
         /// <summary>Die Lücken in der Reihenfolge ihres ersten Auftretens.</summary>
@@ -69,8 +79,9 @@ namespace Kyklos
             {
                 string key = KeyOf(m);
                 if (list.Any(g => g.Key == key)) continue;
-                var o = OptionsOf(m);
-                list.Add(new Gap { Key = key, Name = NameOf(m), Options = o, Picked = o == null ? null : new bool[o.Count] });
+                bool single;
+                var o = OptionsOf(m, out single);
+                list.Add(new Gap { Key = key, Name = NameOf(m), Options = o, Single = single, Picked = o == null ? null : new bool[o.Count] });
             }
             return list;
         }
@@ -278,6 +289,43 @@ namespace Kyklos
     </Setter>
   </Style>
 
+  <!-- Entweder-oder: dieselbe Zeile wie die Option, mit Ring statt Kästchen -->
+  <Style x:Key='Pick' TargetType='RadioButton'>
+    <Setter Property='FontSize' Value='13'/>
+    <Setter Property='Foreground' Value='{DynamicResource Text1}'/>
+    <Setter Property='FocusVisualStyle' Value='{x:Null}'/>
+    <Setter Property='Cursor' Value='Hand'/>
+    <Setter Property='Template'>
+      <Setter.Value>
+        <ControlTemplate TargetType='RadioButton'>
+          <Border x:Name='Row' Background='Transparent' BorderBrush='Transparent' BorderThickness='1' CornerRadius='6' Height='32' Padding='8,0'>
+            <StackPanel Orientation='Horizontal'>
+              <Grid Width='18' Height='18' VerticalAlignment='Center' SnapsToDevicePixels='True'>
+                <Ellipse x:Name='Ring' Stroke='{DynamicResource Text2}' StrokeThickness='1.5' Fill='Transparent'/>
+                <Ellipse x:Name='Dot' Width='7' Height='7' Fill='{DynamicResource Ink}' Visibility='Collapsed'/>
+              </Grid>
+              <ContentPresenter Margin='10,0,0,0' VerticalAlignment='Center' RecognizesAccessKey='False'/>
+            </StackPanel>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property='IsMouseOver' Value='True'>
+              <Setter TargetName='Row' Property='Background' Value='#0DFFFFFF'/>
+            </Trigger>
+            <Trigger Property='IsKeyboardFocused' Value='True'>
+              <Setter TargetName='Row' Property='Background' Value='{DynamicResource KeyCap}'/>
+              <Setter TargetName='Row' Property='BorderBrush' Value='{DynamicResource Hot}'/>
+            </Trigger>
+            <Trigger Property='IsChecked' Value='True'>
+              <Setter TargetName='Ring' Property='Fill' Value='{DynamicResource Hot}'/>
+              <Setter TargetName='Ring' Property='Stroke' Value='{DynamicResource Hot}'/>
+              <Setter TargetName='Dot' Property='Visibility' Value='Visible'/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <Style x:Key='Primary' TargetType='Button'>
     <Setter Property='FontSize' Value='13'/>
     <Setter Property='FontWeight' Value='SemiBold'/>
@@ -450,9 +498,9 @@ namespace Kyklos
             DockPanel.SetDock(buttons, Dock.Right);
             foot.Children.Add(buttons);
             var hints = new WrapPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
-            bool anyChoice = _gaps.Any(g => g.IsChoice);
             Hint(hints, res, "Tab", "weiter");
-            if (anyChoice) Hint(hints, res, "Leertaste", "an / aus");
+            if (_gaps.Any(g => g.IsChoice && !g.Single)) Hint(hints, res, "Leertaste", "an / aus");
+            if (_gaps.Any(g => g.Single)) Hint(hints, res, "Pfeiltasten", "wählen");
             Hint(hints, res, "Enter", _gaps.Count > 1 ? "nächste Lücke" : "einfügen");
             foot.Children.Add(hints);
             root.Children.Add(foot);
@@ -471,6 +519,22 @@ namespace Kyklos
                     box.Tag = g;
                     fields.Children.Add(box);
                     _firsts.Add(box);
+                }
+                else if (g.Single)
+                {
+                    // Tab springt einmal in die Gruppe – auf die gewählte Option, sonst die erste –, die Pfeile wählen darin.
+                    var list = new StackPanel { Margin = new Thickness(-8, -2, 0, 0) };
+                    KeyboardNavigation.SetTabNavigation(list, KeyboardNavigationMode.Once);
+                    for (int i = 0; i < g.Options.Count; i++)
+                    {
+                        int n = i;
+                        var rb = new RadioButton { Content = g.Options[i], Style = (Style)res["Pick"], Tag = g, GroupName = g.Key };
+                        rb.Checked += (s, e) => { for (int k = 0; k < g.Picked.Length; k++) g.Picked[k] = k == n; Render(); };
+                        rb.GotKeyboardFocus += (s, e) => Activate(g);
+                        list.Children.Add(rb);
+                        if (i == 0) _firsts.Add(rb);
+                    }
+                    fields.Children.Add(list);
                 }
                 else
                 {
@@ -638,6 +702,18 @@ namespace Kyklos
                 else Finish(true);
                 return;
             }
+            var rb = focused as RadioButton;
+            if (rb != null && (e.Key == Key.Down || e.Key == Key.Up || e.Key == Key.Left || e.Key == Key.Right))
+            {
+                // Entweder-oder: Die Pfeile wandern innerhalb der Gruppe und wählen dabei, wie unter Windows gewohnt.
+                e.Handled = true;
+                var group = (Panel)rb.Parent;
+                int at = group.Children.IndexOf(rb) + (e.Key == Key.Down || e.Key == Key.Right ? 1 : -1);
+                var to = at >= 0 && at < group.Children.Count ? (RadioButton)group.Children[at] : rb;
+                to.Focus();
+                to.IsChecked = true;
+                return;
+            }
             if (focused is CheckBox && (e.Key == Key.Down || e.Key == Key.Up))
             {
                 e.Handled = true;
@@ -720,10 +796,11 @@ namespace Kyklos
                 if (box != null) box.Text = ((Gaps.Gap)box.Tag).Value;
                 var list = child as StackPanel;
                 if (list != null)
-                    foreach (CheckBox cb in list.Children)
+                    foreach (System.Windows.Controls.Primitives.ToggleButton cb in list.Children)
                     {
                         var g = (Gaps.Gap)cb.Tag;
-                        cb.IsChecked = g.Picked[g.Options.IndexOf((string)cb.Content)];
+                        if (g.Picked[g.Options.IndexOf((string)cb.Content)]) cb.IsChecked = true;
+                        else if (!g.Single) cb.IsChecked = false;
                     }
             }
             if (focusGap >= 0 && focusGap < f._gaps.Count) f.Activate(f._gaps[focusGap]);

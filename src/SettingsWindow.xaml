@@ -172,12 +172,14 @@
                 <TextBlock Style="{StaticResource Help}"
                            Text="Platzhalter: {datum}, {uhrzeit}, {wochentag}, {zwischenablage} und {cursor} für die Stelle, an der die Schreibmarke danach steht."/>
                 <TextBlock Text="Lücken zum Ausfüllen" Style="{StaticResource FieldLabel}"/>
-                <StackPanel Orientation="Horizontal">
-                  <Button x:Name="GapFieldBtn" Style="{StaticResource Btn}" Content="Eingabefeld"/>
-                  <Button x:Name="GapChoiceBtn" Style="{StaticResource Btn}" Content="Mehrfachauswahl" Margin="8,0,0,0"/>
-                </StackPanel>
+                <!-- Umbruch statt Abschneiden, wenn die Spalte für drei Schaltflächen zu schmal ist -->
+                <WrapPanel Margin="0,0,-8,-8">
+                  <Button x:Name="GapFieldBtn" Style="{StaticResource Btn}" Content="Eingabefeld" Margin="0,0,8,8"/>
+                  <Button x:Name="GapChoiceBtn" Style="{StaticResource Btn}" Content="Mehrfachauswahl" Margin="0,0,8,8"/>
+                  <Button x:Name="GapPickBtn" Style="{StaticResource Btn}" Content="Entweder-oder" Margin="0,0,8,8"/>
+                </WrapPanel>
                 <TextBlock Style="{StaticResource Help}"
-                           Text="{}{?Tage} fragt beim Auslösen einen Wert ab, {?Symptome: Husten | Schnupfen | Fieber} lässt ankreuzen – eingefügt als „Husten und Fieber“. Erst wenn alles ausgefüllt ist, kommt der Text ins Feld."/>
+                           Text="{}{?Tage} fragt beim Auslösen einen Wert ab, {?Symptome: Husten | Schnupfen | Fieber} lässt ankreuzen – eingefügt als „Husten und Fieber“, {?FSME-Impfung: ja / nein / unbekannt} lässt genau eine Option wählen. Erst wenn alles ausgefüllt ist, kommt der Text ins Feld."/>
                 <TextBlock Text="Abwechslung" Style="{StaticResource FieldLabel}"/>
                 <StackPanel Orientation="Horizontal">
                   <Button x:Name="VariantBtn" Style="{StaticResource Btn}" Content="Weitere Variante"/>

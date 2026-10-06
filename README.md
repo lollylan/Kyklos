@@ -74,12 +74,16 @@ Platzhalter im Text: `{datum}` (03.10.2026), `{uhrzeit}` (14:32), `{wochentag}`,
 
 ### Lückentext
 
-Lücken werden erst beim Auslösen gefüllt. Die Schaltflächen „Eingabefeld" und „Mehrfachauswahl" unter dem Text setzen sie
-an die Schreibmarke (markierter Text wird zum Namen der Lücke).
+Lücken werden erst beim Auslösen gefüllt. Die Schaltflächen „Eingabefeld", „Mehrfachauswahl" und „Entweder-oder" unter
+dem Text setzen sie an die Schreibmarke (markierter Text wird zum Namen der Lücke).
 
 ```
 Erkältungssymptome seit {?Tage} Tagen mit {?Symptome: Husten | Schnupfen | Heiserkeit | Kopfschmerzen}.
+FSME-Impfung aktuell: {?FSME-Impfung: ja / nein / unbekannt}.
 ```
+
+Optionen mit `|` getrennt lassen sich beliebig ankreuzen, mit `/` getrennt ist genau eine wählbar. Ein Schrägstrich
+zwischen zwei Ziffern (`1/2`, `5/10 mg`) trennt keine Optionen.
 
 Beim Auslösen öffnet sich am Zeiger ein Fenster: oben der Text, wie er gleich eingefügt wird (die Lücke, an der du gerade
 bist, leuchtet in der Segmentfarbe), darunter die Felder. Angekreuzte Optionen werden zu „Husten, Schnupfen und
@@ -87,9 +91,9 @@ Kopfschmerzen" verbunden. Steht dieselbe Lücke mehrmals im Text, wird sie einma
 
 | Taste | Wirkung |
 |---|---|
-| Tab / Umschalt + Tab | Nächstes / voriges Element (jede Option einzeln) |
+| Tab / Umschalt + Tab | Nächstes / voriges Element (jede Option einzeln, Entweder-oder als Ganzes) |
 | Leertaste | Option an / aus |
-| Pfeil hoch / runter | Zwischen Optionen wechseln |
+| Pfeil hoch / runter | Zwischen Optionen wechseln; bei Entweder-oder zugleich wählen |
 | Enter | Zur nächsten Lücke; in der letzten: einfügen |
 | Strg + Enter | Sofort einfügen |
 | Esc | Abbrechen, nichts wird eingefügt |

@@ -416,7 +416,8 @@ Ein Stück des Geräts, kein Dialog des Arbeitsblatts: Gerätefarben, öffnet mi
   Segmentfarbe. Textauswahl in Segmentfarbe (45 %).
 - **Option:** Zeile 32 hoch, Kästchen 18 (Radius 4, Rahmen 1,5 `CText2`); angekreuzt in Segmentfarbe mit Graphit-Haken.
   Fokussiert: Zeile `CKey` mit Rahmen in Segmentfarbe; überfahren nur ein Weiß-Schleier von 5 %, weil die Maus beim
-  Öffnen zufällig über einer Option stehen kann.
+  Öffnen zufällig über einer Option stehen kann. Entweder-oder: dieselbe Zeile mit Ring 18 (Rahmen 1,5 `CText2`);
+  gewählt Ring gefüllt in Segmentfarbe mit Graphit-Punkt 7.
 - **Hauptaktion „Einfügen":** Fläche in Segmentfarbe, Schrift Graphit Semibold – die leuchtende Taste. „Abbrechen" als
   Geist. Fokusring 2 px `CText`.
 - **Tastenhinweise:** Tastenkappen (`CKey`, Rahmen `PRim`, Radius 4, 11 Semibold) mit Wirkung in Help-Größe `CText2`.

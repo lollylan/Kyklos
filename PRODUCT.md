@@ -41,7 +41,7 @@ ein Auswahlrad aus Computerspielen: Richtung statt Tastenposition, eine Geste st
 
 - 2 bis 12 Segmente pro Rad, mehrere Räder mit eigenem Auslöser, Unterräder (Ordner).
 - Segment: Beschriftung und/oder Symbol bzw. eigenes Bild, eigene Farbe.
-- Lückentext: Lücken im Text (`{?Tage}` Eingabefeld, `{?Symptome: A | B | C}` Mehrfachauswahl) werden beim Auslösen in
+- Lückentext: Lücken im Text (`{?Tage}` Eingabefeld, `{?Symptome: A | B | C}` Mehrfachauswahl, `{?FSME: ja / nein}` Entweder-oder) werden beim Auslösen in
   einem Fenster am Zeiger abgefragt, per Tastatur (Tab, Leertaste, Enter). Dieses Fenster ist die einzige Stelle, die den
   Fokus kurz übernimmt; danach geht er an das Zielprogramm zurück, erst dann wird eingefügt.
 - Aktionen: Text einfügen (mit Platzhaltern für Datum, Uhrzeit, Zwischenablage, Cursorposition), Tastenkombination,
