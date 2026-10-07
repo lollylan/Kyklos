@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 
 namespace Kyklos
 {
-    public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay, Click }
+    public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay, Click, Focus }
     public enum TextMode { Paste, Type }
 
     /// <summary>Taste oder Maustaste samt Zusatztasten – als Auslöser eines Rads oder als zu sendende Kombination.</summary>
@@ -84,6 +84,8 @@ namespace Kyklos
         public int DelayMs = 250;
         public int X, Y;                    // Bildschirmpunkt in physischen Pixeln (Mausklick)
         public string Button = "left";
+        public string Title = "";           // Teil des Fenstertitels (Fenster nach vorn holen)
+        public bool Launch = true;          // Programm starten, wenn kein Fenster offen ist
         public List<Slot> Slots = new List<Slot>();
 
         public static readonly string[][] MediaNames =
@@ -123,6 +125,7 @@ namespace Kyklos
                 case ActionType.Folder: return "Unterrad";
                 case ActionType.Delay: return "Pause";
                 case ActionType.Click: return "Mausklick";
+                case ActionType.Focus: return "Fenster nach vorn holen";
                 default: return "Keine Aktion";
             }
         }
@@ -142,8 +145,7 @@ namespace Kyklos
                 case ActionType.Keys: return Keys.Display();
                 case ActionType.Open:
                     if (string.IsNullOrWhiteSpace(Path)) return "Noch kein Ziel gewählt";
-                    try { string f = System.IO.Path.GetFileName(Path.TrimEnd('\\', '/')); return f.Length > 0 ? f : Path; }
-                    catch (ArgumentException) { return Path; }
+                    return FileName(Path);
                 case ActionType.Url:
                     return string.IsNullOrWhiteSpace(Url) ? "Noch keine Adresse" : Regex.Replace(Url.Trim(), @"^https?://(www\.)?", "");
                 case ActionType.Media: return MediaName(Media);
@@ -153,8 +155,18 @@ namespace Kyklos
                     return n == 1 ? "Unterrad · 1 Eintrag" : "Unterrad · " + n + " Einträge";
                 case ActionType.Delay: return "Pause " + DelayMs + " ms";
                 case ActionType.Click: return ButtonName(Button) + " bei " + X + ", " + Y;
+                case ActionType.Focus:
+                    string who = string.IsNullOrWhiteSpace(Path) ? "" : FileName(Path.Trim().Trim('"'));
+                    if (string.IsNullOrWhiteSpace(Title)) return who.Length > 0 ? "Fenster von " + who : "Noch kein Fenster gewählt";
+                    return (who.Length > 0 ? who + " · " : "Fenster ") + "„" + Title.Trim() + "“";
                 default: return "Keine Aktion";
             }
+        }
+
+        static string FileName(string path)
+        {
+            try { string f = System.IO.Path.GetFileName(path.TrimEnd('\\', '/')); return f.Length > 0 ? f : path; }
+            catch (ArgumentException) { return path; }
         }
 
         public Dictionary<string, object> ToJson()
@@ -186,6 +198,11 @@ namespace Kyklos
                     d["y"] = Y;
                     d["button"] = Button;
                     break;
+                case ActionType.Focus:
+                    d["path"] = Path ?? "";
+                    if (!string.IsNullOrEmpty(Title)) d["title"] = Title;
+                    d["launch"] = Launch;
+                    break;
             }
             return d;
         }
@@ -210,6 +227,8 @@ namespace Kyklos
             a.X = Json.I(d, "x");
             a.Y = Json.I(d, "y");
             a.Button = Json.S(d, "button", "left");
+            a.Title = Json.S(d, "title");
+            a.Launch = Json.B(d, "launch", true);
             foreach (var s in Json.A(d, "steps")) a.Steps.Add(FromJson(s as Dictionary<string, object>));
             foreach (var s in Json.A(d, "slots")) a.Slots.Add(Slot.FromJson(s as Dictionary<string, object>));
             return a;

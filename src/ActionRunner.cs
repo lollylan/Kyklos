@@ -230,7 +230,8 @@ namespace Kyklos
             finally { Gate.Release(); }
         }
 
-        static async Task Run(ActionDef a, Settings st, Slot origin, int depth)
+        /// <returns>false, wenn ein Makro hier abbrechen soll.</returns>
+        static async Task<bool> Run(ActionDef a, Settings st, Slot origin, int depth)
         {
             switch (a.Type)
             {
@@ -260,18 +261,23 @@ namespace Kyklos
                 case ActionType.Click:
                     await KeySender.Click(a.X, a.Y, a.Button);
                     break;
+                case ActionType.Focus:
+                    if (await WindowFocus.Bring(a)) break;
+                    System.Media.SystemSounds.Exclamation.Play();
+                    return false;
                 case ActionType.Macro:
                     if (depth > 4) break;
                     for (int i = 0; i < a.Steps.Count; i++)
                     {
-                        await Run(a.Steps[i], st, origin, depth + 1);
+                        if (!await Run(a.Steps[i], st, origin, depth + 1)) return false;
                         if (i + 1 < a.Steps.Count) await Task.Delay(Math.Max(0, Math.Min(5000, a.StepDelayMs)));
                     }
                     break;
             }
+            return true;
         }
 
-        static void Start(string target, string args)
+        public static bool Start(string target, string args)
         {
             try
             {
@@ -284,12 +290,14 @@ namespace Kyklos
                 }
                 catch (ArgumentException) { }
                 Process.Start(psi);
+                return true;
             }
             catch (Exception ex)
             {
                 Log.Write("Öffnen fehlgeschlagen (" + target + "): " + ex.Message);
                 MessageBox.Show("„" + target + "“ konnte nicht geöffnet werden.\n\n" + ex.Message, "Kyklos",
                                 MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
             }
         }
 

@@ -15,6 +15,7 @@ namespace Kyklos
     ///   --dev-icon &lt;datei.ico&gt;   erzeugt das Programmsymbol
     ///   --dev-render &lt;ordner&gt;    rendert Rad, Symbolübersicht und Einstellungen als PNG zur Sichtprüfung
     ///   --dev-savetest &lt;ordner&gt;  prüft das Speichern gegen eine von außen offen gehaltene Datei (savetest.txt)
+    ///   --dev-focus &lt;programm&gt; [titel]  holt dessen Fenster nach vorn wie der Makro-Schritt; Rückgabe 0 bei Erfolg
     /// </summary>
     public static class Dev
     {
@@ -24,6 +25,11 @@ namespace Kyklos
             if (args[0] == "--dev-icon") { MakeIcon(args[1]); return 0; }
             if (args[0] == "--dev-render") { Render(args[1]); return 0; }
             if (args[0] == "--dev-savetest") return SaveTest(args[1]);
+            if (args[0] == "--dev-focus")
+            {
+                var a = new ActionDef { Type = ActionType.Focus, Path = args[1], Title = args.Length > 2 ? args[2] : "", Launch = false };
+                return System.Threading.Tasks.Task.Run(() => WindowFocus.Bring(a)).Result ? 0 : 1;
+            }
             return 2;
         }
 
@@ -355,9 +361,13 @@ namespace Kyklos
             Shot(win, Path.Combine(dir, "settings-macro.png"));
             var macro = host.Config.Wheels[0].Slots[6].Action.Slots[2].Action;
             macro.Steps.Insert(0, new ActionDef { Type = ActionType.Click, X = 1284, Y = 612, Button = "double" });
+            macro.Steps.Insert(0, new ActionDef { Type = ActionType.Focus, Path = @"C:\Program Files\Diktat\Transkript.exe" });
             sw.DevSelect(1);
             sw.DevSelect(2);
             Shot(win, Path.Combine(dir, "settings-macro-click.png"));
+            sw.DevScrollInspector(false);
+            Pump(400);      // Schalter-Animation auslaufen lassen
+            Shot(win, Path.Combine(dir, "settings-macro-focus.png"));
             sw.ShowGeneral();
             Pump(400);      // Schalter-Animation auslaufen lassen
             Shot(win, Path.Combine(dir, "settings-general.png"));

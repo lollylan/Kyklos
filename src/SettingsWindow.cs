@@ -154,12 +154,14 @@ namespace Kyklos
         public void DevCloneWheel() { CloneWheel.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); }
         public void DevHome() { ShowEditor(); SelectWheel(Cfg.Wheels[0]); }
         public void DevScrollGeneral() { GeneralPanel.UpdateLayout(); GeneralPanel.ScrollToEnd(); }
-        public void DevScrollInspector()
+        public void DevScrollInspector(bool end = true)
         {
             DependencyObject d = PText;
             while (d != null && !(d is ScrollViewer)) d = VisualTreeHelper.GetParent(d);
             var sv = d as ScrollViewer;
-            if (sv != null) { sv.UpdateLayout(); sv.ScrollToEnd(); }
+            if (sv == null) return;
+            sv.UpdateLayout();
+            if (end) sv.ScrollToEnd(); else sv.ScrollToHome();
         }
 
         void Touch() { _host.ConfigChanged(); }
@@ -196,7 +198,8 @@ namespace Kyklos
 
             foreach (var m in ActionDef.MediaNames) MediaBox.Items.Add(Item(m[1], m[0]));
 
-            foreach (var t in new[] { ActionType.Text, ActionType.Keys, ActionType.Open, ActionType.Url, ActionType.Media, ActionType.Delay, ActionType.Click })
+            foreach (var t in new[] { ActionType.Text, ActionType.Keys, ActionType.Open, ActionType.Url, ActionType.Media, ActionType.Delay, ActionType.Click,
+                                      ActionType.Focus })
                 AddStepBox.Items.Add(Item(ActionDef.TypeName(t), t));
 
             foreach (var c in Palette.Colors)
@@ -910,6 +913,8 @@ namespace Kyklos
                     return dp;
                 case ActionType.Click:
                     return ClickEditor(step);
+                case ActionType.Focus:
+                    return FocusEditor(step);
                 case ActionType.Open:
                     var ob = new TextBox { Text = step.Path, Tag = "Programm, Datei oder Ordner" };
                     ob.TextChanged += (s, e) => { step.Path = ob.Text; Touch(); };
@@ -983,6 +988,65 @@ namespace Kyklos
                 Style = (Style)_w.FindResource("Help"), Margin = new Thickness(0, 6, 0, 0),
                 Text = "Nach „Position aufnehmen“ hast du 3 Sekunden, den Zeiger auf die Stelle zu bewegen. Der Klick trifft immer " +
                        "denselben Bildschirmpunkt – verschiebt sich das Fenster, geht er daneben. Danach steht der Zeiger wieder, wo er war."
+            });
+            return panel;
+        }
+
+        FrameworkElement FocusEditor(ActionDef step)
+        {
+            var panel = new StackPanel();
+            var prog = new TextBox { Text = step.Path, Tag = "Programm, z. B. Transkript.exe" };
+            var title = new TextBox { Text = step.Title, Tag = "Teil des Fenstertitels" };
+            prog.TextChanged += (s, e) => { step.Path = prog.Text; Touch(); };
+            title.TextChanged += (s, e) => { step.Title = title.Text; Touch(); };
+
+            // Die Liste entsteht erst beim Aufklappen, damit sie die Fenster zeigt, die gerade offen sind.
+            var pick = new ComboBox { Tag = "Aus offenen Fenstern übernehmen …" };
+            bool filling = false;
+            pick.DropDownOpened += (s, e) =>
+            {
+                filling = true;
+                pick.Items.Clear();
+                foreach (var w in WindowFocus.List())
+                {
+                    string t = w.Title.Length > 60 ? w.Title.Substring(0, 58).TrimEnd() + " …" : w.Title;
+                    if (t.Length == 0) t = "Ohne Titel";
+                    pick.Items.Add(Item(w.ExeName.Length > 0 ? t + "  ·  " + w.ExeName : t, w));
+                }
+                if (pick.Items.Count == 0) pick.Items.Add(new ComboBoxItem { Content = "Keine Fenster gefunden", IsEnabled = false });
+                filling = false;
+            };
+            pick.SelectionChanged += (s, e) =>
+            {
+                var w = TagOf(pick) as WindowFocus.Info;
+                if (filling || w == null) return;
+                // Universal-Apps teilen sich einen Rahmenprozess; bei ihnen hilft nur der Titel.
+                bool frame = string.Equals(w.ExeName, WindowFocus.AppFrameHost, StringComparison.OrdinalIgnoreCase) || w.ExePath.Length == 0;
+                prog.Text = frame ? "" : w.ExePath;
+                title.Text = frame ? w.Title : "";
+                filling = true; pick.SelectedIndex = -1; filling = false;
+            };
+            panel.Children.Add(pick);
+
+            panel.Children.Add(new TextBlock { Text = "Programm", Style = (Style)_w.FindResource("FieldLabel"), Margin = new Thickness(0, 12, 0, 6) });
+            panel.Children.Add(prog);
+            panel.Children.Add(new TextBlock { Text = "Fenstertitel enthält (optional)", Style = (Style)_w.FindResource("FieldLabel"), Margin = new Thickness(0, 12, 0, 6) });
+            panel.Children.Add(title);
+
+            var launch = new CheckBox
+            {
+                Style = (Style)_w.FindResource("Switch"), IsChecked = step.Launch, Margin = new Thickness(0, 12, 0, 0),
+                Content = new TextBlock { Text = "Starten, wenn kein Fenster offen ist", VerticalAlignment = VerticalAlignment.Center }
+            };
+            launch.Checked += (s, e) => { step.Launch = true; Touch(); };
+            launch.Unchecked += (s, e) => { step.Launch = false; Touch(); };
+            panel.Children.Add(launch);
+
+            panel.Children.Add(new TextBlock
+            {
+                Style = (Style)_w.FindResource("Help"), Margin = new Thickness(0, 8, 0, 0),
+                Text = "Holt das zuletzt benutzte Fenster des Programms nach vorn – auch wenn es verdeckt, verschoben oder minimiert ist. " +
+                       "Findet sich keins, bricht das Makro ab, damit die folgenden Tasten nicht im falschen Programm landen."
             });
             return panel;
         }

@@ -68,7 +68,7 @@ sofort.
 | Programm, Datei oder Ordner öffnen | Auch mit Parametern; `%USERPROFILE%` und andere Umgebungsvariablen werden aufgelöst |
 | Website öffnen | Im Standardbrowser |
 | Medien und System | Wiedergabe, Lautstärke, Bildschirmausschnitt, Desktop anzeigen, PC sperren |
-| Makro | Mehrere der obigen Schritte nacheinander, mit Pausen und Mausklicks (links, doppelt, rechts, Mitte) an einem festen Bildschirmpunkt. „Position aufnehmen" gibt 3 Sekunden, um den Zeiger auf das Ziel zu stellen; nach dem Klick steht der Zeiger wieder, wo er war |
+| Makro | Mehrere der obigen Schritte nacheinander, mit Pausen und Mausklicks (links, doppelt, rechts, Mitte) an einem festen Bildschirmpunkt. „Position aufnehmen" gibt 3 Sekunden, um den Zeiger auf das Ziel zu stellen; nach dem Klick steht der Zeiger wieder, wo er war. Zuverlässiger als ein Klick ist der Schritt „Fenster nach vorn holen“: Er sucht das zuletzt benutzte Fenster eines Programms (optional mit Teil des Titels), holt es auch verdeckt oder minimiert nach vorn und startet das Programm bei Bedarf. Findet er keins, bricht das Makro ab, damit die folgenden Tasten nicht im falschen Programm landen |
 | Unterrad | Ein weiteres Rad hinter diesem Segment |
 
 Platzhalter im Text: `{datum}` (03.10.2026), `{uhrzeit}` (14:32), `{wochentag}`, `{zwischenablage}` (aktueller Inhalt) und
