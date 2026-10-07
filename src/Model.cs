@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 
 namespace Kyklos
 {
-    public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay }
+    public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay, Click }
     public enum TextMode { Paste, Type }
 
     /// <summary>Taste oder Maustaste samt Zusatztasten – als Auslöser eines Rads oder als zu sendende Kombination.</summary>
@@ -82,6 +82,8 @@ namespace Kyklos
         public List<ActionDef> Steps = new List<ActionDef>();
         public int StepDelayMs = 60;
         public int DelayMs = 250;
+        public int X, Y;                    // Bildschirmpunkt in physischen Pixeln (Mausklick)
+        public string Button = "left";
         public List<Slot> Slots = new List<Slot>();
 
         public static readonly string[][] MediaNames =
@@ -90,6 +92,17 @@ namespace Kyklos
             new[] { "stop", "Wiedergabe stoppen" }, new[] { "volup", "Lauter" }, new[] { "voldown", "Leiser" }, new[] { "mute", "Ton aus / an" },
             new[] { "snip", "Bildschirmausschnitt" }, new[] { "desktop", "Desktop anzeigen" }, new[] { "lock", "PC sperren" }
         };
+
+        public static readonly string[][] ButtonNames =
+        {
+            new[] { "left", "Linksklick" }, new[] { "double", "Doppelklick" }, new[] { "right", "Rechtsklick" }, new[] { "middle", "Mittelklick" }
+        };
+
+        public static string ButtonName(string id)
+        {
+            foreach (var b in ButtonNames) if (b[0] == id) return b[1];
+            return "Linksklick";
+        }
 
         public static string MediaName(string id)
         {
@@ -109,6 +122,7 @@ namespace Kyklos
                 case ActionType.Macro: return "Makro (mehrere Schritte)";
                 case ActionType.Folder: return "Unterrad";
                 case ActionType.Delay: return "Pause";
+                case ActionType.Click: return "Mausklick";
                 default: return "Keine Aktion";
             }
         }
@@ -138,6 +152,7 @@ namespace Kyklos
                     int n = Slots.Count(s => !s.IsEmpty);
                     return n == 1 ? "Unterrad · 1 Eintrag" : "Unterrad · " + n + " Einträge";
                 case ActionType.Delay: return "Pause " + DelayMs + " ms";
+                case ActionType.Click: return ButtonName(Button) + " bei " + X + ", " + Y;
                 default: return "Keine Aktion";
             }
         }
@@ -166,6 +181,11 @@ namespace Kyklos
                     break;
                 case ActionType.Folder: d["slots"] = Slots.Select(s => (object)s.ToJson()).ToList(); break;
                 case ActionType.Delay: d["delayMs"] = DelayMs; break;
+                case ActionType.Click:
+                    d["x"] = X;
+                    d["y"] = Y;
+                    d["button"] = Button;
+                    break;
             }
             return d;
         }
@@ -187,6 +207,9 @@ namespace Kyklos
             a.Media = Json.S(d, "media", "playpause");
             a.StepDelayMs = Json.I(d, "stepDelayMs", 60);
             a.DelayMs = Json.I(d, "delayMs", 250);
+            a.X = Json.I(d, "x");
+            a.Y = Json.I(d, "y");
+            a.Button = Json.S(d, "button", "left");
             foreach (var s in Json.A(d, "steps")) a.Steps.Add(FromJson(s as Dictionary<string, object>));
             foreach (var s in Json.A(d, "slots")) a.Slots.Add(Slot.FromJson(s as Dictionary<string, object>));
             return a;

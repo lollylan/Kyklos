@@ -10,7 +10,7 @@ using System.Windows;
 
 namespace Kyklos
 {
-    /// <summary>Erzeugt Tastatureingaben über SendInput. Alle Ereignisse tragen unsere Signatur.</summary>
+    /// <summary>Erzeugt Tastatur- und Mauseingaben über SendInput. Alle Ereignisse tragen unsere Signatur.</summary>
     public static class KeySender
     {
         static readonly int Size = Marshal.SizeOf(typeof(Native.INPUT));
@@ -66,6 +66,38 @@ namespace Kyklos
             l.Add(Key(c.Code, true));
             for (int n = mods.Count - 1; n >= 0; n--) l.Add(Key(mods[n], true));
             Send(l);
+        }
+
+        static Native.INPUT MouseButton(uint flag)
+        {
+            var i = new Native.INPUT { type = Native.INPUT_MOUSE };
+            i.u.mi.dwFlags = flag;
+            i.u.mi.dwExtraInfo = Native.Signature;
+            return i;
+        }
+
+        /// <summary>
+        /// Klickt an einem Bildschirmpunkt (physische Pixel wie GetCursorPos) und stellt den Zeiger danach zurück,
+        /// damit die Maus des Nutzers nicht springt.
+        /// </summary>
+        public static async Task Click(int x, int y, string button)
+        {
+            uint down, up;
+            switch (button)
+            {
+                case "right": down = Native.MOUSEEVENTF_RIGHTDOWN; up = Native.MOUSEEVENTF_RIGHTUP; break;
+                case "middle": down = Native.MOUSEEVENTF_MIDDLEDOWN; up = Native.MOUSEEVENTF_MIDDLEUP; break;
+                default: down = Native.MOUSEEVENTF_LEFTDOWN; up = Native.MOUSEEVENTF_LEFTUP; break;
+            }
+            Native.POINT back;
+            Native.GetCursorPos(out back);
+            Native.SetCursorPos(x, y);
+            await Task.Delay(30);       // Ziel bekommt erst die Bewegung mit (Hover), dann den Klick
+            var l = new List<Native.INPUT> { MouseButton(down), MouseButton(up) };
+            if (button == "double") { l.Add(MouseButton(down)); l.Add(MouseButton(up)); }
+            Send(l);
+            await Task.Delay(60);       // Klick verarbeiten lassen, bevor der Zeiger zurückwandert
+            Native.SetCursorPos(back.x, back.y);
         }
 
         /// <summary>
@@ -224,6 +256,9 @@ namespace Kyklos
                     break;
                 case ActionType.Delay:
                     await Task.Delay(Math.Max(0, Math.Min(60000, a.DelayMs)));
+                    break;
+                case ActionType.Click:
+                    await KeySender.Click(a.X, a.Y, a.Button);
                     break;
                 case ActionType.Macro:
                     if (depth > 4) break;

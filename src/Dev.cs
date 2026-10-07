@@ -353,6 +353,11 @@ namespace Kyklos
             sw.DevEnterFolder();
             sw.DevSelect(2);
             Shot(win, Path.Combine(dir, "settings-macro.png"));
+            var macro = host.Config.Wheels[0].Slots[6].Action.Slots[2].Action;
+            macro.Steps.Insert(0, new ActionDef { Type = ActionType.Click, X = 1284, Y = 612, Button = "double" });
+            sw.DevSelect(1);
+            sw.DevSelect(2);
+            Shot(win, Path.Combine(dir, "settings-macro-click.png"));
             sw.ShowGeneral();
             Pump(400);      // Schalter-Animation auslaufen lassen
             Shot(win, Path.Combine(dir, "settings-general.png"));
@@ -370,6 +375,8 @@ namespace Kyklos
             win.Height = 800;
             sw.DevHome();
             Shot(win, Path.Combine(dir, "settings-trigger2.png"));
+            sw.DevCloneWheel();
+            Shot(win, Path.Combine(dir, "settings-clone.png"));
             win.Close();
         }
 

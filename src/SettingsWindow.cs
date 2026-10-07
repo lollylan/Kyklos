@@ -43,7 +43,7 @@ namespace Kyklos
         readonly Button SampleKeep;
         readonly Grid EditorPanel;
         readonly ScrollViewer GeneralPanel;
-        readonly Button AddWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
+        readonly Button AddWheel, CloneWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
                         KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn, GapPickBtn,
                         VariantBtn, AlternBtn;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
@@ -89,7 +89,7 @@ namespace Kyklos
             SlotTitle = F<TextBlock>("SlotTitle"); SlotPos = F<TextBlock>("SlotPos"); ScaleText = F<TextBlock>("ScaleText");
             ConfigPathText = F<TextBlock>("ConfigPathText"); VersionText = F<TextBlock>("VersionText");
             EditorPanel = F<Grid>("EditorPanel"); GeneralPanel = F<ScrollViewer>("GeneralPanel");
-            AddWheel = F<Button>("AddWheel"); DeleteWheel = F<Button>("DeleteWheel"); TriggerBtn = F<Button>("TriggerBtn");
+            AddWheel = F<Button>("AddWheel"); CloneWheel = F<Button>("CloneWheel"); DeleteWheel = F<Button>("DeleteWheel"); TriggerBtn = F<Button>("TriggerBtn");
             AddTrigger2 = F<Button>("AddTrigger2"); Trigger2Btn = F<Button>("Trigger2Btn"); Trigger2Clear = F<Button>("Trigger2Clear");
             TriggerGroup = F<StackPanel>("TriggerGroup"); Trigger2Group = F<StackPanel>("Trigger2Group");
             AddSlot = F<Button>("AddSlot"); TestBtn = F<Button>("TestBtn"); RemoveSlot = F<Button>("RemoveSlot");
@@ -151,6 +151,7 @@ namespace Kyklos
         // Für die Sichtprüfung über --dev-render.
         public void DevSelect(int i) { SelectSlot(i); }
         public void DevEnterFolder() { EnterFolder(Cur); }
+        public void DevCloneWheel() { CloneWheel.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); }
         public void DevHome() { ShowEditor(); SelectWheel(Cfg.Wheels[0]); }
         public void DevScrollGeneral() { GeneralPanel.UpdateLayout(); GeneralPanel.ScrollToEnd(); }
         public void DevScrollInspector()
@@ -195,7 +196,7 @@ namespace Kyklos
 
             foreach (var m in ActionDef.MediaNames) MediaBox.Items.Add(Item(m[1], m[0]));
 
-            foreach (var t in new[] { ActionType.Text, ActionType.Keys, ActionType.Open, ActionType.Url, ActionType.Media, ActionType.Delay })
+            foreach (var t in new[] { ActionType.Text, ActionType.Keys, ActionType.Open, ActionType.Url, ActionType.Media, ActionType.Delay, ActionType.Click })
                 AddStepBox.Items.Add(Item(ActionDef.TypeName(t), t));
 
             foreach (var c in Palette.Colors)
@@ -331,6 +332,24 @@ namespace Kyklos
                 LoadStage();
                 LoadInspector();
                 Touch();
+            };
+            CloneWheel.Click += (s, e) =>
+            {
+                CancelRecord();
+                var copy = Wheel.FromJson(_wheel.ToJson());
+                copy.Id = new Wheel().Id;
+                string name = (_wheel.Name ?? "").Trim();
+                copy.Name = (name.Length > 32 ? name.Substring(0, 32).TrimEnd() : name) + " (Kopie)";
+                // Dieselbe Taste würde zwei Räder öffnen wollen – die Kopie bekommt ihre eigene.
+                copy.Trigger = new Chord();
+                copy.Trigger2 = new Chord();
+                Cfg.Wheels.Insert(Cfg.Wheels.IndexOf(_wheel) + 1, copy);
+                RebuildWheelList();
+                ShowEditor();
+                SelectWheel(copy);
+                Touch();
+                WheelName.Focus();
+                WheelName.SelectAll();
             };
             DeleteWheel.Click += (s, e) => Confirm(DeleteWheel, "Wirklich löschen?", () =>
             {
@@ -889,6 +908,8 @@ namespace Kyklos
                         Margin = new Thickness(8, 0, 0, 0)
                     });
                     return dp;
+                case ActionType.Click:
+                    return ClickEditor(step);
                 case ActionType.Open:
                     var ob = new TextBox { Text = step.Path, Tag = "Programm, Datei oder Ordner" };
                     ob.TextChanged += (s, e) => { step.Path = ob.Text; Touch(); };
@@ -906,6 +927,64 @@ namespace Kyklos
                     tb.TextChanged += (s, e) => { step.Text = tb.Text; Touch(); };
                     return tb;
             }
+        }
+
+        FrameworkElement ClickEditor(ActionDef step)
+        {
+            var panel = new StackPanel();
+            var kind = new ComboBox();
+            foreach (var b in ActionDef.ButtonNames) kind.Items.Add(Item(b[1], b[0]));
+            SelectTag(kind, step.Button);
+            kind.SelectionChanged += (s, e) => { if (TagOf(kind) != null) { step.Button = (string)TagOf(kind); Touch(); } };
+            panel.Children.Add(kind);
+
+            var row = new DockPanel { LastChildFill = false, Margin = new Thickness(0, 8, 0, 0) };
+            Func<string, TextBox> coord = name =>
+            {
+                row.Children.Add(new TextBlock
+                {
+                    Text = name, Foreground = Res("Ink2"), VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(row.Children.Count == 0 ? 0 : 12, 0, 6, 0)
+                });
+                var box = new TextBox { Width = 64, TextAlignment = TextAlignment.Right, MaxLength = 6 };
+                row.Children.Add(box);
+                return box;
+            };
+            var xb = coord("X");
+            var yb = coord("Y");
+            xb.Text = step.X.ToString();
+            yb.Text = step.Y.ToString();
+            xb.TextChanged += (s, e) => { int v; if (int.TryParse(xb.Text, out v)) { step.X = v; Touch(); } };
+            yb.TextChanged += (s, e) => { int v; if (int.TryParse(yb.Text, out v)) { step.Y = v; Touch(); } };
+
+            var pick = new Button { Style = (Style)_w.FindResource("Btn"), Content = "Position aufnehmen" };
+            DockPanel.SetDock(pick, Dock.Right);
+            pick.Click += async (s, e) =>
+            {
+                pick.IsEnabled = false;
+                Native.POINT p;
+                for (int ticks = 30; ticks > 0; ticks--)
+                {
+                    Native.GetCursorPos(out p);
+                    pick.Content = (ticks + 9) / 10 + " s · " + p.x + ", " + p.y;
+                    await Task.Delay(100);
+                }
+                Native.GetCursorPos(out p);
+                xb.Text = p.x.ToString();
+                yb.Text = p.y.ToString();
+                pick.Content = "Position aufnehmen";
+                pick.IsEnabled = true;
+            };
+            row.Children.Add(pick);
+            panel.Children.Add(row);
+
+            panel.Children.Add(new TextBlock
+            {
+                Style = (Style)_w.FindResource("Help"), Margin = new Thickness(0, 6, 0, 0),
+                Text = "Nach „Position aufnehmen“ hast du 3 Sekunden, den Zeiger auf die Stelle zu bewegen. Der Klick trifft immer " +
+                       "denselben Bildschirmpunkt – verschiebt sich das Fenster, geht er daneben. Danach steht der Zeiger wieder, wo er war."
+            });
+            return panel;
         }
 
         // ---------------------------------------------------------------- Tasten aufnehmen, Rückfragen

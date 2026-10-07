@@ -15,8 +15,8 @@ using WF = System.Windows.Forms;
 [assembly: AssemblyCompany("Florian Rasche")]
 [assembly: AssemblyDescription("Auswahlrad für Textbausteine und Makros")]
 [assembly: AssemblyCopyright("© 2026 Florian Rasche · MIT-Lizenz")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]
 // Ohne diese Angabe behandelt WPF die App wie ein altes Programm und skaliert nicht pro Monitor.
 [assembly: TargetFramework(".NETFramework,Version=v4.8", FrameworkDisplayName = ".NET Framework 4.8")]
 
@@ -24,7 +24,7 @@ namespace Kyklos
 {
     public static class Program
     {
-        public const string Version = "1.2";
+        public const string Version = "1.3";
 
         [STAThread]
         public static int Main(string[] args)

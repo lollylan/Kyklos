@@ -60,7 +60,10 @@
         <StackPanel Margin="32,22,28,0">
           <DockPanel>
             <Button x:Name="DeleteWheel" DockPanel.Dock="Right" Style="{StaticResource BtnGhost}" Content="Rad löschen"
-                    VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    VerticalAlignment="Center" Margin="4,0,0,0"/>
+            <Button x:Name="CloneWheel" DockPanel.Dock="Right" Style="{StaticResource BtnGhost}" Content="Rad duplizieren"
+                    VerticalAlignment="Center" Margin="12,0,0,0"
+                    ToolTip="Legt eine Kopie mit allen Segmenten an – ohne Auslöser, damit sie eine eigene Taste bekommt."/>
             <TextBox x:Name="WheelName" Style="{StaticResource TitleBox}" Tag="Name des Rads" MaxLength="40"/>
           </DockPanel>
           <!-- Bricht bei schmalem Fenster in zwei Zeilen um. -->

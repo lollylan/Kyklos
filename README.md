@@ -49,6 +49,8 @@ sofort.
 - **Auslöser** pro Rad: einzelne Taste, Kombination (z. B. Strg + Leertaste), Maus-Seitentaste oder mittlere Maustaste.
   Schaltfläche anklicken, Taste drücken. Über **Zweiter Auslöser** öffnet dasselbe Rad auch mit einer weiteren Taste oder
   Kombination (z. B. `^` oder Strg + Leertaste); das × daneben entfernt ihn wieder.
+- **Rad duplizieren** legt eine Kopie mit allen Segmenten, Unterrädern und Makros an – ohne Auslöser, damit sie eine
+  eigene Taste bekommt. Praktisch für leicht abgewandelte Räder, etwa eins pro Kollegin am selben PC.
 - **Segmente**: 2 bis 12 pro Rad. Ziehen vertauscht zwei Segmente, die Pfeile im Inspektor verschieben eins.
 - **Beschriftung, Symbol, Farbe**: Text und/oder Symbol aus der Auswahl oder ein eigenes Bild (PNG, JPG, ICO … oder das
   Symbol einer Exe). Bilder werden verkleinert in der Konfiguration abgelegt.
@@ -66,7 +68,7 @@ sofort.
 | Programm, Datei oder Ordner öffnen | Auch mit Parametern; `%USERPROFILE%` und andere Umgebungsvariablen werden aufgelöst |
 | Website öffnen | Im Standardbrowser |
 | Medien und System | Wiedergabe, Lautstärke, Bildschirmausschnitt, Desktop anzeigen, PC sperren |
-| Makro | Mehrere der obigen Schritte nacheinander, mit Pausen |
+| Makro | Mehrere der obigen Schritte nacheinander, mit Pausen und Mausklicks (links, doppelt, rechts, Mitte) an einem festen Bildschirmpunkt. „Position aufnehmen" gibt 3 Sekunden, um den Zeiger auf das Ziel zu stellen; nach dem Klick steht der Zeiger wieder, wo er war |
 | Unterrad | Ein weiteres Rad hinter diesem Segment |
 
 Platzhalter im Text: `{datum}` (03.10.2026), `{uhrzeit}` (14:32), `{wochentag}`, `{zwischenablage}` (aktueller Inhalt) und
