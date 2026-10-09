@@ -16,6 +16,7 @@ namespace Kyklos
     ///   --dev-render &lt;ordner&gt;    rendert Rad, Symbolübersicht und Einstellungen als PNG zur Sichtprüfung
     ///   --dev-savetest &lt;ordner&gt;  prüft das Speichern gegen eine von außen offen gehaltene Datei (savetest.txt)
     ///   --dev-focus &lt;programm&gt; [titel]  holt dessen Fenster nach vorn wie der Makro-Schritt; Rückgabe 0 bei Erfolg
+    ///   --dev-ocr &lt;bild&gt;...      erkennt den Text wie „Text erkennen“ und schreibt ihn nach &lt;bild&gt;.txt; Rückgabe 0, wenn Text kam
     /// </summary>
     public static class Dev
     {
@@ -25,12 +26,81 @@ namespace Kyklos
             if (args[0] == "--dev-icon") { MakeIcon(args[1]); return 0; }
             if (args[0] == "--dev-render") { Render(args[1]); return 0; }
             if (args[0] == "--dev-savetest") return SaveTest(args[1]);
+            if (args[0] == "--dev-ocr") return OcrFiles(args);
             if (args[0] == "--dev-focus")
             {
                 var a = new ActionDef { Type = ActionType.Focus, Path = args[1], Title = args.Length > 2 ? args[2] : "", Launch = false };
                 return System.Threading.Tasks.Task.Run(() => WindowFocus.Bring(a)).Result ? 0 : 1;
             }
             return 2;
+        }
+
+        // ---------------------------------------------------------------- Texterkennung
+
+        static int OcrFiles(string[] args)
+        {
+            bool all = true;
+            for (int i = 1; i < args.Length; i++)
+            {
+                string text;
+                using (var bmp = new System.Drawing.Bitmap(args[i]))
+                    text = System.Threading.Tasks.Task.Run(() => Ocr.Recognize(bmp)).Result;
+                File.WriteAllText(args[i] + ".txt", text ?? "[keine Texterkennung in Windows]", System.Text.Encoding.UTF8);
+                all &= !string.IsNullOrEmpty(text);
+            }
+            return all ? 0 : 1;
+        }
+
+        /// <summary>Ein gefaxter Arztbrief, wie er im Faxprogramm steht: Schwarzweiß, mit Störpunkten.</summary>
+        static System.Drawing.Bitmap FaxPage(int w, int h)
+        {
+            var bmp = new System.Drawing.Bitmap(w, h);
+            using (var g = System.Drawing.Graphics.FromImage(bmp))
+            using (var f = new System.Drawing.Font("Times New Roman", 15))
+            using (var fb = new System.Drawing.Font("Times New Roman", 15, System.Drawing.FontStyle.Bold))
+            using (var big = new System.Drawing.Font("Times New Roman", 22, System.Drawing.FontStyle.Bold))
+            {
+                g.Clear(System.Drawing.Color.FromArgb(0x5A, 0x5E, 0x66));
+                g.FillRectangle(System.Drawing.Brushes.White, 140, 0, w - 200, h);
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixelGridFit;
+                var ink = System.Drawing.Brushes.Black;
+                g.DrawString("Klinikum Musterstadt · Medizinische Klinik I", big, ink, 200, 60);
+                g.DrawString("Sehr geehrter Herr Kollege, wir berichten über Ihre Patientin, die sich vom 03.10. bis 08.10.2026", f, ink, 200, 140);
+                g.DrawString("in unserer stationären Behandlung befand.", f, ink, 200, 166);
+                g.DrawString("Diagnosen:", fb, ink, 200, 216);
+                string[] lines = { "1. Akuter Myokardinfarkt (NSTEMI), ED 03.10.2026", "2. Arterielle Hypertonie", "3. Diabetes mellitus Typ 2, HbA1c 7,4 %" };
+                for (int i = 0; i < lines.Length; i++) g.DrawString(lines[i], f, ink, 200, 244 + 26 * i);
+                g.DrawString("Medikation bei Entlassung:", fb, ink, 200, 340);
+                string[] meds = { "ASS 100 mg 1-0-0, Ticagrelor 90 mg 1-0-1 (bis 10/2027)", "Ramipril 5 mg 1-0-0, Metoprololsuccinat 47,5 mg 1-0-1", "Atorvastatin 80 mg 0-0-1" };
+                for (int i = 0; i < meds.Length; i++) g.DrawString(meds[i], f, ink, 200, 368 + 26 * i);
+                g.DrawString("Wir bitten um Kontrolle von Kreatinin und Kalium in einer Woche.", f, ink, 200, 470);
+            }
+            var r = new Random(7);
+            for (int i = 0; i < w * h / 300; i++) bmp.SetPixel(140 + r.Next(w - 200), r.Next(h), System.Drawing.Color.Black);
+            return bmp;
+        }
+
+        /// <summary>Auswahl über einem Fax, vor und während des Aufziehens, und die Rückmeldungen danach.</summary>
+        static void RenderCapture(string dir)
+        {
+            const int w = 1100, h = 560;
+            var hot = Palette.Parse("#45CFC6");
+            using (var page = FaxPage(w, h))
+            {
+                Save(CaptureWindow.DevBuild((System.Drawing.Bitmap)page.Clone(), hot, Skin.Graphit, null), w, h, Path.Combine(dir, "capture-idle.png"));
+                Save(CaptureWindow.DevBuild((System.Drawing.Bitmap)page.Clone(), hot, Skin.Graphit, new Rect(188, 208, 470, 116)), w, h, Path.Combine(dir, "capture-drag.png"));
+                page.Save(Path.Combine(dir, "capture-fax.png"));
+                using (var crop = page.Clone(new System.Drawing.Rectangle(188, 208, 470, 116), page.PixelFormat))
+                    crop.Save(Path.Combine(dir, "capture-crop.png"));
+            }
+            string text = "Diagnosen:\n1. Akuter Myokardinfarkt (NSTEMI), ED 03.10.2026\n2. Arterielle Hypertonie\n3. Diabetes mellitus Typ 2, HbA1c 7,4 %";
+            var stack = new StackPanel { Background = new SolidColorBrush(Color.FromRgb(0xF2, 0xF3, 0xF5)) };
+            foreach (var sk in new[] { Skin.Graphit, Skin.Hell })
+                for (int state = 0; state < 3; state++) stack.Children.Add(CaptureToast.DevBuild(hot, sk, state, text));
+            stack.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            stack.Arrange(new Rect(stack.DesiredSize));
+            stack.UpdateLayout();
+            Save(stack, (int)Math.Ceiling(stack.ActualWidth), (int)Math.Ceiling(stack.ActualHeight), Path.Combine(dir, "capture-toasts.png"));
         }
 
         // ---------------------------------------------------------------- Speichern
@@ -467,6 +537,7 @@ namespace Kyklos
 
             IconSheet(Path.Combine(dir, "icons.png"));
             RenderFill(dir);
+            RenderCapture(dir);
             RenderSettings(dir);
         }
 

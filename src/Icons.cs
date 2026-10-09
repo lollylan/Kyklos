@@ -72,7 +72,7 @@ namespace Kyklos
         {
             new[] { "v:kalender", "Kalender" }, new[] { "v:uhr", "Uhr" }, new[] { "v:person", "Person" }, new[] { "v:dokument", "Dokument" },
             new[] { "v:stift", "Schreiben" }, new[] { "v:kopieren", "Kopieren" }, new[] { "v:einfuegen", "Einfügen" }, new[] { "v:auswahl", "Auswahl" },
-            new[] { "v:ausschnitt", "Ausschnitt" }, new[] { "v:suche", "Suchen" }, new[] { "v:haken", "Erledigt" }, new[] { "v:ordner", "Ordner" },
+            new[] { "v:ausschnitt", "Ausschnitt" }, new[] { "v:texterkennung", "Text erkennen" }, new[] { "v:suche", "Suchen" }, new[] { "v:haken", "Erledigt" }, new[] { "v:ordner", "Ordner" },
             new[] { "v:mail", "E-Mail" }, new[] { "v:globus", "Web" }, new[] { "v:rechner", "Rechner" }, new[] { "v:werkzeug", "Werkzeug" },
             new[] { "v:schloss", "Sperren" }, new[] { "v:blitz", "Makro" }, new[] { "v:wiedergabe", "Wiedergabe" }, new[] { "v:plus", "Plus" }
         };
@@ -224,6 +224,7 @@ namespace Kyklos
             { "einfuegen", "M9 2 h6 a1 1 0 0 1 1 1 v2 a1 1 0 0 1 -1 1 H9 a1 1 0 0 1 -1 -1 V3 a1 1 0 0 1 1 -1 z M16 4 h2 a2 2 0 0 1 2 2 v14 a2 2 0 0 1 -2 2 H6 a2 2 0 0 1 -2 -2 V6 a2 2 0 0 1 2 -2 h2" },
             { "auswahl", "M5 3 a2 2 0 0 0 -2 2 M19 3 a2 2 0 0 1 2 2 M21 19 a2 2 0 0 1 -2 2 M5 21 a2 2 0 0 1 -2 -2 M9 3 h1 M9 21 h1 M14 3 h1 M14 21 h1 M3 9 v1 M21 9 v1 M3 14 v1 M21 14 v1" },
             { "ausschnitt", "M6 2 v14 a2 2 0 0 0 2 2 h14 M18 22 V8 a2 2 0 0 0 -2 -2 H2" },
+            { "texterkennung", "M3 7 V5 a2 2 0 0 1 2 -2 h2 M17 3 h2 a2 2 0 0 1 2 2 v2 M21 17 v2 a2 2 0 0 1 -2 2 h-2 M7 21 H5 a2 2 0 0 1 -2 -2 v-2 M7 8 h8 M7 12 h10 M7 16 h6" }, // lucide:scan-text
             { "suche", "M19 11 a8 8 0 1 1 -16 0 a8 8 0 1 1 16 0 M21 21 l-4.3 -4.3" },
             { "haken", "M20 6 L9 17 l-5 -5" },
             { "ordner", "M20 20 a2 2 0 0 0 2 -2 V8 a2 2 0 0 0 -2 -2 h-7.9 a2 2 0 0 1 -1.69 -0.9 L9.6 3.9 A2 2 0 0 0 7.93 3 H4 a2 2 0 0 0 -2 2 v13 a2 2 0 0 0 2 2 Z" },

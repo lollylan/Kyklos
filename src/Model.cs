@@ -92,7 +92,7 @@ namespace Kyklos
         {
             new[] { "playpause", "Wiedergabe / Pause" }, new[] { "next", "Nächster Titel" }, new[] { "prev", "Vorheriger Titel" },
             new[] { "stop", "Wiedergabe stoppen" }, new[] { "volup", "Lauter" }, new[] { "voldown", "Leiser" }, new[] { "mute", "Ton aus / an" },
-            new[] { "snip", "Bildschirmausschnitt" }, new[] { "desktop", "Desktop anzeigen" }, new[] { "lock", "PC sperren" }
+            new[] { "snip", "Bildschirmausschnitt" }, new[] { "ocr", "Text erkennen (Bereich markieren)" }, new[] { "desktop", "Desktop anzeigen" }, new[] { "lock", "PC sperren" }
         };
 
         public static readonly string[][] ButtonNames =

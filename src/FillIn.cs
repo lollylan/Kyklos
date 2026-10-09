@@ -621,7 +621,7 @@ namespace Kyklos
                 root.BeginAnimation(UIElement.OpacityProperty,
                     new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(130)) { EasingFunction = new ExponentialEase { EasingMode = EasingMode.EaseOut, Exponent = 5 } });
             }
-            TakeFocus();
+            TakeFocus(_win);
             if (_firsts.Count > 0) { _firsts[0].Focus(); Keyboard.Focus(_firsts[0]); }
             return _done.Task;
         }
@@ -659,9 +659,9 @@ namespace Kyklos
         /// Windows gibt den Vordergrund nur ungern an ein Programm, das gerade nicht vorn ist. Mit der Eingabe des
         /// vorderen Programms verbunden darf es das.
         /// </summary>
-        void TakeFocus()
+        internal static void TakeFocus(Window win)
         {
-            IntPtr hwnd = new WindowInteropHelper(_win).Handle;
+            IntPtr hwnd = new WindowInteropHelper(win).Handle;
             IntPtr fg = Native.GetForegroundWindow();
             uint pid;
             uint other = Native.GetWindowThreadProcessId(fg, out pid), me = Native.GetCurrentThreadId();
@@ -675,10 +675,10 @@ namespace Kyklos
             {
                 if (attached) Native.AttachThreadInput(me, other, false);
             }
-            _win.Activate();
+            win.Activate();
         }
 
-        static async Task GiveBack(IntPtr target)
+        internal static async Task GiveBack(IntPtr target)
         {
             if (target == IntPtr.Zero) return;
             Native.SetForegroundWindow(target);

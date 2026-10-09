@@ -39,6 +39,11 @@ function Invoke-Csc([string]$out, [bool]$withIcon) {
         $cscArgs += "/resource:$icon,Kyklos.app.ico"
     }
     $cscArgs += $refs | ForEach-Object { "/r:$(Join-Path $fw $_)" }
+    # Texterkennung: die Windows-Laufzeitschnittstellen beschreibt jedes Windows 10/11 selbst, ein SDK ist nicht nötig.
+    $winmd = Join-Path $env:WINDIR 'System32\WinMetadata'
+    $cscArgs += 'System.Runtime.dll', 'System.Runtime.WindowsRuntime.dll' | ForEach-Object { "/r:$(Join-Path $fw $_)" }
+    $cscArgs += 'Windows.Foundation', 'Windows.Globalization', 'Windows.Graphics', 'Windows.Media', 'Windows.Security', 'Windows.Storage' |
+        ForEach-Object { "/r:$(Join-Path $winmd "$_.winmd")" }
     $cscArgs += Get-ChildItem (Join-Path $src '*.cs') | ForEach-Object { $_.FullName }
     & $script:csc @cscArgs
     if ($LASTEXITCODE -ne 0) { throw "Kompilieren fehlgeschlagen (Exitcode $LASTEXITCODE)." }

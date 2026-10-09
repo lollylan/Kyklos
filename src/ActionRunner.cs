@@ -253,6 +253,8 @@ namespace Kyklos
                     }
                     break;
                 case ActionType.Media:
+                    if (a.Media == "ocr")
+                        return await TextCapture.Run(origin == null ? Palette.Parse(Palette.Default) : origin.ColorValue, Skin.Get(st.Skin));
                     Media(a.Media);
                     break;
                 case ActionType.Delay:

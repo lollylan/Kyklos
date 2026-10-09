@@ -175,6 +175,7 @@ namespace Kyklos
                 }
             });
             tools.Slots.Add(new Slot { Label = "Ausschnitt", Icon = "v:ausschnitt", Color = gruen, Action = new ActionDef { Type = ActionType.Media, Media = "snip" } });
+            tools.Slots.Add(new Slot { Label = "Text erkennen", Icon = "v:texterkennung", Color = tuerkis, Action = new ActionDef { Type = ActionType.Media, Media = "ocr" } });
             tools.Slots.Add(new Slot { Label = "Rechner", Icon = "v:rechner", Color = gelb, Action = new ActionDef { Type = ActionType.Open, Path = "calc.exe" } });
             tools.Slots.Add(new Slot { Label = "PC sperren", Icon = "v:schloss", Color = rot, Action = new ActionDef { Type = ActionType.Media, Media = "lock" } });
 

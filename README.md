@@ -13,7 +13,7 @@ quelloffen unter der MIT-Lizenz. „Kyklos" ist griechisch für Kreis bzw. Rad.
 ## Herunterladen
 
 **[Kyklos.exe aus dem neuesten Release laden](https://github.com/lollylan/Kyklos/releases/latest)** – eine einzelne Datei
-(ca. 380 KB), keine Installation, keine Administratorrechte. Läuft auf jedem Windows 10/11 (nutzt das in Windows
+(ca. 470 KB), keine Installation, keine Administratorrechte. Läuft auf jedem Windows 10/11 (nutzt das in Windows
 enthaltene .NET Framework 4.8).
 
 Die Exe in einen eigenen Ordner legen (z. B. `Dokumente\Kyklos` oder auf einen USB-Stick); die Konfiguration entsteht
@@ -67,7 +67,7 @@ sofort.
 | Tastenkombination | Sendet z. B. Strg + S |
 | Programm, Datei oder Ordner öffnen | Auch mit Parametern; `%USERPROFILE%` und andere Umgebungsvariablen werden aufgelöst |
 | Website öffnen | Im Standardbrowser |
-| Medien und System | Wiedergabe, Lautstärke, Bildschirmausschnitt, Desktop anzeigen, PC sperren |
+| Medien und System | Wiedergabe, Lautstärke, Bildschirmausschnitt, [Text erkennen](#text-erkennen), Desktop anzeigen, PC sperren |
 | Makro | Mehrere der obigen Schritte nacheinander, mit Pausen und Mausklicks (links, doppelt, rechts, Mitte) an einem festen Bildschirmpunkt. „Position aufnehmen" gibt 3 Sekunden, um den Zeiger auf das Ziel zu stellen; nach dem Klick steht der Zeiger wieder, wo er war. Zuverlässiger als ein Klick ist der Schritt „Fenster nach vorn holen“: Er sucht das zuletzt benutzte Fenster eines Programms (optional mit Teil des Titels), holt es auch verdeckt oder minimiert nach vorn und startet das Programm bei Bedarf. Findet er keins, bricht das Makro ab, damit die folgenden Tasten nicht im falschen Programm landen |
 | Unterrad | Ein weiteres Rad hinter diesem Segment |
 
@@ -120,6 +120,29 @@ Die Schaltflächen „Weitere Variante" und „Wechselnde Formulierung" unter de
 Mitte die erste Fassung und wie viele es gibt. Lücken (`{?…}`) dürfen in jeder Fassung stehen; abgefragt wird nur die
 gewählte.
 
+## Text erkennen
+
+Für Arztbriefe, die als Fax oder Scan kommen: das Wichtige am Bildschirm markieren und als Text in die Karteikarte
+übernehmen. Die Aktion steht unter *Medien und System* (im Beispielrad unter *Werkzeuge*).
+
+1. Segment auslösen – der Bildschirm unter dem Zeiger wird eingefroren und abgedunkelt.
+2. Mit gedrückter linker Maustaste einen Rahmen um den Text aufziehen. Esc oder Rechtsklick bricht ab.
+3. Der erkannte Text liegt in der Zwischenablage, eine kleine Tafel am Zeiger zeigt die ersten Zeilen zum Gegenlesen.
+   Der Fokus ist wieder im Programm von vorher; `Strg + V` fügt ein.
+
+Zeilenumbrüche bleiben wie im Brief, ein größerer Abstand zwischen zwei Zeilen wird zur Leerzeile. Erkannt wird mit der
+in Windows eingebauten Texterkennung: **alles bleibt auf dem PC**, nichts geht ins Internet. Wie bei den Bausteinen wird
+der Zwischenablage-Verlauf (Win + V) gebeten, den Text nicht aufzuzeichnen.
+
+Im Makro lässt sich direkt weitermachen, etwa: *Text erkennen* → *Fenster nach vorn holen* (Praxissoftware) →
+Tastenkombination `Strg + V`. Wird die Auswahl abgebrochen oder kein Text erkannt, hält das Makro an, statt den alten
+Inhalt der Zwischenablage einzufügen.
+
+**Gegenlesen bleibt Pflicht**, vor allem bei Dosierungen und Zahlen. Verrauschte Faxe werden vor der Erkennung entstört.
+Bei sehr kleiner Schrift kann die Erkennung aber Buchstaben verwechseln oder einzelne Wörter auslassen. Am besten das
+Fax vorher so weit vergrößern, dass es gut lesbar ist; ab normaler Lesegröße ist die Erkennung zuverlässig. Fehlt die
+deutsche Texterkennung in Windows (selten), sagt die Tafel, wo sie sich nachinstallieren lässt.
+
 ## Dateien
 
 | Datei | Zweck |
@@ -160,7 +183,7 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
 Das Ergebnis liegt in `dist\Kyklos.exe`. Braucht nur den C#-Compiler aus den „Build Tools für Visual Studio" (2019 oder
-neuer); kein .NET SDK, keine Pakete.
+neuer); kein .NET SDK, kein Windows SDK, keine Pakete.
 Ziel ist das in Windows enthaltene .NET Framework 4.8. Das Programmsymbol (`assets\app.ico`) zeichnet die App selbst –
 fehlt es, erzeugt es der Build.
 
@@ -171,9 +194,10 @@ fehlt es, erzeugt es der Build.
 | `src\InputHook.cs` | Globale Tastatur- und Maus-Hooks auf eigenem Thread |
 | `src\ActionRunner.cs` | Aktionen, Texteingabe, Zwischenablage |
 | `src\FillIn.cs` | Lückentext: Lücken erkennen und füllen, Abfragefenster mit Fokusübergabe |
+| `src\TextCapture.cs` | Text erkennen: Bereich aufziehen, Vorverarbeitung und Windows-Texterkennung, Rückmeldung am Zeiger |
 | `src\SettingsWindow.xaml/.cs`, `src\Theme.xaml` | Einstellungen und ihr Aussehen |
 | `src\Model.cs`, `src\ConfigStore.cs`, `src\Json.cs` | Datenmodell, Laden/Speichern, Beispiel-Räder |
-| `src\Dev.cs` | `--dev-render <ordner>` rendert Rad und Einstellungen als PNG zur Sichtprüfung, `--dev-icon <datei>` das Symbol |
+| `src\Dev.cs` | `--dev-render <ordner>` rendert Rad und Einstellungen als PNG zur Sichtprüfung, `--dev-icon <datei>` das Symbol, `--dev-ocr <bild>` erkennt den Text eines Bilds nach `<bild>.txt` |
 | `tools\e2e.ps1` | Funktionstest mit echten Eingaben: startet die Exe mit einer Testkonfiguration, hält die Auslösetaste, bewegt die Maus und prüft, was im Testfenster ankommt (bewegt ca. 15 s lang den Mauszeiger) |
 | `tools\import-icons.mjs` | Übernimmt weitere Liniensymbole aus Tabler oder Lucide, z. B. `node tools/import-icons.mjs tabler:bone=knochen`, und gibt die Einträge für `Icons.cs` aus |
 

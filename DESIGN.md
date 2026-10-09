@@ -423,6 +423,21 @@ Ein Stück des Geräts, kein Dialog des Arbeitsblatts: Gerätefarben, öffnet mi
 - **Tastenhinweise:** Tastenkappen (`CKey`, Rahmen `PRim`, Radius 4, 11 Semibold) mit Wirkung in Help-Größe `CText2`.
 - **Bewegung:** 130 ms Einblenden der Deckkraft, nur wenn Windows-Animationen an sind.
 
+### Text erkennen (`src/TextCapture.cs`)
+Auch hier liegt das Gerät auf dem Bildschirm, nicht ein Dialog darüber.
+- **Auswahl:** Der Monitor unter dem Zeiger wird eingefroren und unter einen Graphit-Schleier gelegt (`CChassis`, 55 %).
+  Der aufgezogene Rahmen spart den Schleier aus, dort steht der Bildschirm unverändert hell. Kontur 2 px in Segmentfarbe,
+  außen eine Haarlinie `CChassis`, damit sie auf weißem Papier wie auf dunklen Fenstern trägt. Zeiger: Fadenkreuz.
+- **Hinweis:** Tafel oben mittig im Arbeitsbereich (`CChassis`, Rahmen `PRim`, Radius 10, Schatten wie die Lückenabfrage):
+  Symbol in Segmentfarbe, „Rahmen um den Text aufziehen" (600, 13), Tastenkappe Esc mit „abbrechen". Sie weicht
+  (Deckkraft 0), sobald Zeiger oder Rahmen ihr nahekommen.
+- **Rückmeldung:** Tafel rechts unter der Stelle des Loslassens, 320 Textbreite, nimmt keinen Fokus und lässt Klicks durch.
+  Kopf 600/13 `CText` mit Zeilenzahl rechts in `CText2`; darunter die ersten drei Zeilen des Texts (12/17, `CText2`),
+  jede Briefzeile eine Zeile. Erfolg: Haken in Segmentfarbe. Kein Text oder Fehler: Symbol in `BText3` und ein Satz,
+  was zu tun ist. Bleibt 2,6 s (Fehler 4,5 s).
+- **Bewegung:** Erst steht der eingefrorene Bildschirm unverändert, dann legt sich der Schleier in 140 ms darüber –
+  kein Sprung beim Öffnen. Rückmeldung 130 ms ein, 220 ms aus. Alles nur mit Windows-Animationen.
+
 ### Buttons
 Sachlich und flach; die Form sagt „Bedienelement", die Farbe sagt nichts.
 - **Shape:** leicht gerundet (6), Höhe 34, Rahmen 1 px.
@@ -485,8 +500,8 @@ Sachlich und flach; die Form sagt „Bedienelement", die Farbe sagt nichts.
 - **Don't** Verläufe einsetzen, außer im Schlagschatten unter dem Gerät.
 - **Don't** Tasten in Ruhe einfärben oder Beschriftungen entlang des Bogens drehen.
 - **Don't** `Accent` als Schaltflächenfarbe oder `Palette-Orange` auf hellem Grund verwenden.
-- **Don't** dem Zielprogramm den Fokus nehmen: Das Rad ist ein Gast, kein Fenster. Einzige Ausnahme ist die
-  Lückenabfrage, in die getippt wird; sie gibt den Fokus vor dem Einfügen zurück.
+- **Don't** dem Zielprogramm den Fokus nehmen: Das Rad ist ein Gast, kein Fenster. Ausnahmen sind die
+  Lückenabfrage, in die getippt wird, und die Auswahl bei „Text erkennen“; beide geben den Fokus danach zurück.
 - **Don't** eine dritte Schriftstärke, Versalien-Etiketten oder eine zweite Schrift einführen.
 - **Don't** Rasterbilder ausliefern, die nicht der Code erzeugt; das Programmsymbol entsteht beim Bauen. Auch der Schmuck
   der Aussehen (Auge, Spinne, Lichter, Schnee, Stechpalme) ist Vektorzeichnung in `src/SkinDecor.cs`.
