@@ -96,6 +96,8 @@ namespace Kyklos
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")]
+        public static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
+        [DllImport("user32.dll")]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
         [DllImport("user32.dll")]
         public static extern bool BringWindowToTop(IntPtr hWnd);
@@ -107,6 +109,7 @@ namespace Kyklos
         public static extern uint GetCurrentThreadId();
 
         public const int GW_OWNER = 4, SW_RESTORE = 9, DWMWA_CLOAKED = 14;
+        public const uint GA_ROOTOWNER = 3;
         public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);

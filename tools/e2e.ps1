@@ -38,10 +38,20 @@ $json = @'
         { "label": "Leer", "color": "#5DD28B", "action": { "type": "none" } },
         { "label": "Makro", "color": "#62ABFF", "action": { "type": "macro", "stepDelayMs": 60, "steps": [
             { "type": "media", "media": "ocr" }, { "type": "text", "text": "DANACH" } ] } },
-        { "label": "Leer", "color": "#FF7B7B", "action": { "type": "none" } } ] }
+        { "label": "Leer", "color": "#FF7B7B", "action": { "type": "none" } } ] },
+    { "id": "allg", "name": "Allgemein", "trigger": { "code": 126 },
+      "slots": [ { "label": "Allgemein", "action": { "type": "text", "text": "ALLGEMEIN" } }, { "label": "Leer", "action": { "type": "none" } } ] },
+    { "id": "spez", "name": "Spezial", "trigger": { "code": 126 }, "apps": [ { "exe": "", "name": "Hauptfenster", "title": "Hauptfenster" } ],
+      "slots": [ { "label": "Spezial", "action": { "type": "text", "text": "SPEZIAL" } }, { "label": "Leer", "action": { "type": "none" } } ] },
+    { "id": "nur", "name": "Nur Haupt", "trigger": { "code": 127 }, "apps": [ { "exe": "", "name": "Hauptfenster", "title": "Hauptfenster" } ],
+      "slots": [ { "label": "Nur", "action": { "type": "text", "text": "NUR-HAUPT" } }, { "label": "Leer", "action": { "type": "none" } } ] },
+    { "id": "exe", "name": "Per Exe", "trigger": { "code": 128 }, "apps": [ { "exe": "@EXE@", "name": "Testprogramm" } ],
+      "slots": [ { "label": "Exe", "action": { "type": "text", "text": "PER-EXE" } }, { "label": "Leer", "action": { "type": "none" } } ] }
   ]
 }
 '@
+# Das Rad "Per Exe" gilt im Programm, das diesen Test ausfuehrt (powershell.exe oder pwsh.exe).
+$json = $json.Replace('@EXE@', (Get-Process -Id $PID).ProcessName + '.exe')
 [System.IO.File]::WriteAllText((Join-Path $dir 'Kyklos.json'), $json, (New-Object System.Text.UTF8Encoding($false)))
 
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
@@ -87,7 +97,7 @@ Start-Sleep -Milliseconds 600
 
 $screen = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $form = New-Object System.Windows.Forms.Form
-$form.Text = 'Kyklos E2E'; $form.StartPosition = 'Manual'; $form.TopMost = $true
+$form.Text = 'Kyklos E2E Hauptfenster'; $form.StartPosition = 'Manual'; $form.TopMost = $true
 $form.Size = New-Object System.Drawing.Size 820, 700
 $form.Location = New-Object System.Drawing.Point (($screen.Left + ($screen.Width - 820) / 2), ($screen.Top + ($screen.Height - 700) / 2))
 $tb = New-Object System.Windows.Forms.TextBox
@@ -266,10 +276,52 @@ try {
   Wait 2200
   Check 'Makro laeuft nach dem Erkennen weiter' ($tb.Text -eq 'DANACH') ("'" + $tb.Text + "'")
   Check 'Makro: erkannter Text bleibt in der Zwischenablage' ([System.Windows.Forms.Clipboard]::GetText() -eq 'Kreatinin 1,2 mg/dl, Kalium 4,1 mmol/l') ("'" + [System.Windows.Forms.Clipboard]::GetText() + "'")
+
+  # 8: Programmabhaengige Raeder - dieselbe Taste oeffnet je nach Fenster vorn ein anderes Rad (F15),
+  #    eine nur fuer ein Fenster belegte Taste bleibt anderswo normal (F16), Erkennung am Programm (F17).
+  $F15 = 0x7E; $F16 = 0x7F; $F17 = 0x80
+  function Pick($vk, $box) {
+    $m = $box.PointToScreen((New-Object System.Drawing.Point ($box.ClientSize.Width / 2), ($box.ClientSize.Height / 2)))
+    [void][U]::SetCursorPos($m.X, $m.Y); Wait 100
+    KeyDown $vk; Wait 220; [void][U]::SetCursorPos($m.X, $m.Y - 130); Wait 200; KeyUp $vk; Wait 800
+  }
+  $tb.Clear(); [void]$tb.Focus(); Wait 200
+  Pick $F15 $tb
+  Check 'Gleiche Taste: eigenes Rad im passenden Fenster' ($tb.Text -eq 'SPEZIAL') ("'" + $tb.Text + "'")
+  $tb.Clear(); Wait 100
+  Pick $F16 $tb
+  Check 'Nur-hier-Taste oeffnet im passenden Fenster' ($tb.Text -eq 'NUR-HAUPT') ("'" + $tb.Text + "'")
+  $tb.Clear(); Wait 100
+  Pick $F17 $tb
+  Check 'Erkennung am Programm (Exe)' ($tb.Text -eq 'PER-EXE') ("'" + $tb.Text + "'")
+
+  $form2 = New-Object System.Windows.Forms.Form
+  $form2.Text = 'Kyklos E2E Nebenfenster'; $form2.StartPosition = 'Manual'; $form2.TopMost = $true
+  $form2.Size = New-Object System.Drawing.Size 560, 420
+  $form2.Location = New-Object System.Drawing.Point ($form.Left + 130), ($form.Top + 140)
+  $tb2 = New-Object System.Windows.Forms.TextBox
+  $tb2.Multiline = $true; $tb2.Dock = 'Fill'; $tb2.Font = $tb.Font
+  $script:keys2 = New-Object System.Collections.ArrayList
+  $tb2.Add_KeyDown({ [void]$script:keys2.Add($_.KeyCode.ToString()) })
+  $form2.Controls.Add($tb2)
+  $form2.Show(); Wait 200
+  $m2 = $form2.PointToScreen((New-Object System.Drawing.Point ($form2.ClientSize.Width / 2), ($form2.ClientSize.Height / 2)))
+  [void][U]::SetCursorPos($m2.X, $m2.Y); Wait 80
+  [U]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); Wait 40; [U]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Wait 400
+  if ([U]::GetForegroundWindow() -ne $form2.Handle) { throw 'Zweites Testfenster ist nicht im Vordergrund.' }
+  Pick $F15 $tb2
+  Check 'Gleiche Taste: allgemeines Rad in anderem Fenster' ($tb2.Text -eq 'ALLGEMEIN') ("'" + $tb2.Text + "'")
+  $tb2.Clear(); Wait 100; $script:keys2.Clear()
+  KeyDown $F16; Wait 300
+  $opened = OverlayVisible
+  KeyUp $F16; Wait 150
+  Tap 0x41; Wait 200
+  Check 'Nur-hier-Taste bleibt anderswo normal' ((-not $opened) -and $script:keys2.Contains('F16')) ("Rad offen: $opened, Tasten im Feld: " + ($script:keys2 -join ','))
+  $form2.Close()
 }
 catch { [void]$results.Add('ABBRUCH  ' + $_.Exception.Message) }
 finally {
-  KeyUp $F13; KeyUp 0x7D
+  KeyUp $F13; KeyUp 0x7D; KeyUp 0x7E; KeyUp 0x7F; KeyUp 0x80
   $form.Close()
   [void][U]::SetCursorPos($orig.x, $orig.y)
   Start-Process (Join-Path $dir 'Kyklos.exe') -ArgumentList '--quit' -Wait

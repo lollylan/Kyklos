@@ -173,7 +173,12 @@ namespace Kyklos
         }
         public static double N(Dictionary<string, object> d, string k, double def = 0)
         {
-            object v; return d != null && d.TryGetValue(k, out v) && v is double ? (double)v : def;
+            // Aus der Datei kommen Zahlen als double, beim Kopieren im Speicher (ToJson → FromJson) als int.
+            object v;
+            if (d == null || !d.TryGetValue(k, out v)) return def;
+            if (v is double) return (double)v;
+            if (v is int) return (int)v;
+            return def;
         }
         public static int I(Dictionary<string, object> d, string k, int def = 0) { return (int)Math.Round(N(d, k, def)); }
         public static bool B(Dictionary<string, object> d, string k, bool def = false)

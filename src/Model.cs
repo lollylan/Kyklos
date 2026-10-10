@@ -322,13 +322,121 @@ namespace Kyklos
         public Slot Clone() { return FromJson(ToJson()); }
     }
 
+    /// <summary>
+    /// Ein Programm, in dem ein Rad gilt. Erkannt wird am Namen der Exe – „C:\…\OUTLOOK.EXE“, „outlook.exe“ und „Outlook“
+    /// meinen dasselbe, damit die Konfiguration auch auf einem anderen PC passt. Ein Teil des Fenstertitels grenzt weiter
+    /// ein, etwa auf Gmail im Browser; Universal-Apps sind nur am Titel zu erkennen und haben keine Exe.
+    /// </summary>
+    public sealed class AppScope
+    {
+        public string Exe = "";      // Dateiname der Exe, oder leer
+        public string Path = "";     // voller Pfad, nur für das Symbol in den Einstellungen
+        public string Name = "";     // Anzeigename, z. B. „Microsoft Outlook“
+        public string Title = "";    // Teil des Fenstertitels, optional
+
+        public bool IsEmpty { get { return Key.Length == 0 && TitleKey.Length == 0; } }
+        public string Key { get { return ProgramKey(Exe); } }
+        public string TitleKey { get { return (Title ?? "").Trim(); } }
+
+        public string DisplayName
+        {
+            get
+            {
+                string n = (Name ?? "").Trim();
+                if (n.Length == 0) n = Key;
+                if (n.Length == 0) n = TitleKey;
+                return n.Length > 0 ? n : "Programm";
+            }
+        }
+
+        public static string ProgramKey(string path)
+        {
+            try { return System.IO.Path.GetFileNameWithoutExtension(Environment.ExpandEnvironmentVariables((path ?? "").Trim().Trim('"'))); }
+            catch (ArgumentException) { return ""; }
+        }
+
+        /// <summary>
+        /// Wie genau passt dieser Eintrag zum Fenster vorn? 0 = gar nicht, 2 = Programm, 3 = Programm und Titel.
+        /// Geprüft wird auch der Titel des Hauptfensters, damit das Rad in Dialogen des Programms gleich bleibt.
+        /// </summary>
+        public int Score(string exeKey, string title, string ownerTitle)
+        {
+            if (IsEmpty) return 0;
+            string k = Key, t = TitleKey;
+            if (k.Length > 0 && !string.Equals(k, exeKey, StringComparison.OrdinalIgnoreCase)) return 0;
+            if (t.Length == 0) return 2;
+            bool hit = (title ?? "").IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0
+                    || (ownerTitle ?? "").IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0;
+            return hit ? 3 : 0;
+        }
+
+        /// <summary>Gelten beide Einträge für genau dieselben Fenster?</summary>
+        public bool SameAs(AppScope o)
+        {
+            return o != null && string.Equals(Key, o.Key, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(TitleKey, o.TitleKey, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public AppScope Clone() { return (AppScope)MemberwiseClone(); }
+
+        public Dictionary<string, object> ToJson()
+        {
+            var d = new Dictionary<string, object>();
+            d["exe"] = Exe ?? "";
+            if (!string.IsNullOrEmpty(Path)) d["path"] = Path;
+            d["name"] = Name ?? "";
+            if (!string.IsNullOrWhiteSpace(Title)) d["title"] = Title;
+            return d;
+        }
+
+        public static AppScope FromJson(Dictionary<string, object> d)
+        {
+            return new AppScope { Exe = Json.S(d, "exe"), Path = Json.S(d, "path"), Name = Json.S(d, "name"), Title = Json.S(d, "title") };
+        }
+    }
+
     public sealed class Wheel
     {
         public string Id = Guid.NewGuid().ToString("N").Substring(0, 8);
         public string Name = "Neues Rad";
         public Chord Trigger = new Chord();
         public Chord Trigger2 = new Chord();     // optionaler zweiter Auslöser für dasselbe Rad
+        public List<AppScope> Apps = new List<AppScope>();   // leer: gilt überall
         public List<Slot> Slots = new List<Slot>();
+
+        public bool Everywhere { get { return !Apps.Any(a => !a.IsEmpty); } }
+
+        /// <summary>
+        /// Wie gut passt das Rad zum Fenster vorn? 0 = gar nicht, 1 = gilt überall (Rückfall), 2 und 3 = eigens für dieses
+        /// Programm bzw. dieses Fenster. Beim Auslöser gewinnt das Rad mit dem höchsten Wert.
+        /// </summary>
+        public static int Score(IEnumerable<AppScope> apps, string exeKey, string title, string ownerTitle)
+        {
+            int best = 0;
+            bool any = false;
+            foreach (var a in apps)
+            {
+                if (a.IsEmpty) continue;
+                any = true;
+                best = Math.Max(best, a.Score(exeKey, title, ownerTitle));
+            }
+            return any ? best : 1;
+        }
+
+        /// <summary>„PKMIT und Outlook“ – für Seitenleiste und Hinweise.</summary>
+        public string AppsDisplay()
+        {
+            var names = Apps.Where(a => !a.IsEmpty).Select(a => a.DisplayName).Distinct().ToList();
+            if (names.Count <= 1) return names.Count == 1 ? names[0] : "";
+            return string.Join(", ", names.Take(names.Count - 1)) + " und " + names[names.Count - 1];
+        }
+
+        /// <summary>Würden beide Räder in mindestens einem Fenster um denselben Auslöser konkurrieren?</summary>
+        public bool SameScope(Wheel o)
+        {
+            if (Everywhere || o.Everywhere) return Everywhere && o.Everywhere;
+            return Apps.Any(a => !a.IsEmpty && o.Apps.Any(b => a.SameAs(b)));
+        }
 
         /// <summary>Alle belegten Auslöser, der erste zuerst.</summary>
         public IEnumerable<Chord> Triggers
@@ -352,6 +460,7 @@ namespace Kyklos
             d["name"] = Name ?? "";
             d["trigger"] = Trigger.ToJson();
             if (!Trigger2.IsEmpty) d["trigger2"] = Trigger2.ToJson();
+            if (!Everywhere) d["apps"] = Apps.Where(a => !a.IsEmpty).Select(a => (object)a.ToJson()).ToList();
             d["slots"] = Slots.Select(s => (object)s.ToJson()).ToList();
             return d;
         }
@@ -367,6 +476,11 @@ namespace Kyklos
             if (t2 != null) w.Trigger2 = Chord.FromJson(t2);
             // Ein zweiter Auslöser ohne ersten rückt nach vorn, damit die Oberfläche ihn zeigt.
             if (w.Trigger.IsEmpty && !w.Trigger2.IsEmpty) { w.Trigger = w.Trigger2; w.Trigger2 = new Chord(); }
+            foreach (var a in Json.A(d, "apps"))
+            {
+                var ad = a as Dictionary<string, object>;
+                if (ad != null) w.Apps.Add(AppScope.FromJson(ad));
+            }
             foreach (var s in Json.A(d, "slots")) w.Slots.Add(Slot.FromJson(s as Dictionary<string, object>));
             Normalize(w.Slots);
             return w;

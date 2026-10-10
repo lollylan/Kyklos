@@ -101,6 +101,12 @@
               </Button>
             </StackPanel>
           </WrapPanel>
+          <!-- In welchen Programmen das Rad gilt; die Zeilen entstehen im Code. -->
+          <DockPanel>
+            <TextBlock Text="Gilt in" Style="{StaticResource InlineLabel}" VerticalAlignment="Top" Margin="0,9,10,0"/>
+            <StackPanel x:Name="ScopeHost"/>
+          </DockPanel>
+          <TextBlock x:Name="ScopeNote" Style="{StaticResource Help}" Margin="0,0,0,0" Visibility="Collapsed"/>
           <TextBlock x:Name="TriggerNote" Style="{StaticResource Help}" Foreground="{StaticResource Danger}" Margin="0,0,0,0" Visibility="Collapsed"/>
         </StackPanel>
 

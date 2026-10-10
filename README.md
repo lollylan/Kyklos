@@ -49,6 +49,13 @@ sofort.
 - **Auslöser** pro Rad: einzelne Taste, Kombination (z. B. Strg + Leertaste), Maus-Seitentaste oder mittlere Maustaste.
   Schaltfläche anklicken, Taste drücken. Über **Zweiter Auslöser** öffnet dasselbe Rad auch mit einer weiteren Taste oder
   Kombination (z. B. `^` oder Strg + Leertaste); das × daneben entfernt ihn wieder.
+- **Gilt in** – ein Rad kann auf bestimmte Programme beschränkt werden, etwa ein Dokumentationsrad nur für die
+  Praxissoftware und ein Rad mit Ablegen, Antworten und Weiterleiten nur für das E-Mail-Programm. Unter *Gilt in* auf
+  „Auf ein Programm beschränken …" klicken und das Programm aus der Liste der gerade offenen Fenster wählen; Exe-Namen
+  muss niemand kennen. Mehrere Räder dürfen dieselbe Taste haben: `^` öffnet dann in der Praxissoftware deren Rad und
+  überall sonst das allgemeine. Gibt es kein allgemeines Rad mit dieser Taste, bleibt sie in anderen Programmen eine
+  ganz normale Taste. Weil ein Browser jede Website zeigt, lässt sich zusätzlich ein Teil des Fenstertitels eintragen
+  (z. B. „Gmail"). Erkannt wird am Namen der Exe, deshalb passt die Konfiguration auch auf einem anderen PC.
 - **Rad duplizieren** legt eine Kopie mit allen Segmenten, Unterrädern und Makros an – ohne Auslöser, damit sie eine
   eigene Taste bekommt. Praktisch für leicht abgewandelte Räder, etwa eins pro Kollegin am selben PC.
 - **Segmente**: 2 bis 12 pro Rad. Ziehen vertauscht zwei Segmente, die Pfeile im Inspektor verschieben eins.
@@ -201,7 +208,9 @@ Einstellungen ausdrücklich übernommen hast, wird er mit dem Vermerk `[Beispiel
   Code-Signatur.
 - Zum Aktualisieren erst Kyklos im Infobereich beenden (oder `Kyklos.exe --quit`), dann die neue Exe an dieselbe Stelle
   legen und starten. Läuft noch die alte, holt die neue nur deren Einstellungen nach vorn und beendet sich gleich wieder.
-- Nur Windows. Räder, die je nach aktivem Programm wechseln, gibt es noch nicht.
+- Nur Windows.
+- Läuft die Praxissoftware per Fernzugriff (Remotedesktop, Citrix), sieht Kyklos nur das Fernzugriffsprogramm, nicht
+  das Programm darin. Dann über einen Teil des Fenstertitels unterscheiden.
 - Manche Virenscanner beäugen Programme, die Tastatur und Maus global beobachten. Kyklos liest nur mit, ob der
   Auslöser gedrückt ist, und speichert oder versendet nichts.
 

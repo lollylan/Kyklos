@@ -15,8 +15,8 @@ using WF = System.Windows.Forms;
 [assembly: AssemblyCompany("Florian Rasche")]
 [assembly: AssemblyDescription("Auswahlrad für Textbausteine und Makros")]
 [assembly: AssemblyCopyright("© 2026 Florian Rasche · MIT-Lizenz")]
-[assembly: AssemblyVersion("1.5.0.0")]
-[assembly: AssemblyFileVersion("1.5.0.0")]
+[assembly: AssemblyVersion("1.6.0.0")]
+[assembly: AssemblyFileVersion("1.6.0.0")]
 // Ohne diese Angabe behandelt WPF die App wie ein altes Programm und skaliert nicht pro Monitor.
 [assembly: TargetFramework(".NETFramework,Version=v4.8", FrameworkDisplayName = ".NET Framework 4.8")]
 
@@ -24,7 +24,7 @@ namespace Kyklos
 {
     public static class Program
     {
-        public const string Version = "1.5";
+        public const string Version = "1.6";
 
         [STAThread]
         public static int Main(string[] args)
@@ -169,7 +169,11 @@ namespace Kyklos
         void ApplyBindings()
         {
             InputHook.SetBindings(Config.Wheels.SelectMany(w => w.Triggers
-                                               .Select(t => new InputHook.Binding { Trigger = t.Clone(), WheelId = w.Id })));
+                                               .Select(t => new InputHook.Binding
+                                               {
+                                                   Trigger = t.Clone(), WheelId = w.Id,
+                                                   Apps = w.Apps.Where(a => !a.IsEmpty).Select(a => a.Clone()).ToArray()
+                                               })));
         }
 
         /// <summary>Nach jeder Änderung in den Einstellungen: Auslöser sofort übernehmen, Datei kurz darauf schreiben.</summary>

@@ -461,6 +461,25 @@ namespace Kyklos
             Shot(win, Path.Combine(dir, "settings-trigger2.png"));
             sw.DevCloneWheel();
             Shot(win, Path.Combine(dir, "settings-clone.png"));
+
+            // Programmabhängiges Rad: dieselbe Taste wie das erste, aber nur im Editor und im Browser
+            var scoped = Wheel.FromJson(host.Config.Wheels[0].ToJson());
+            scoped.Id = new Wheel().Id;
+            scoped.Name = "Dokumentation";
+            scoped.Trigger2 = new Chord();
+            scoped.Apps.Add(new AppScope { Exe = "notepad.exe", Path = Path.Combine(Environment.SystemDirectory, "notepad.exe"), Name = "Editor" });
+            scoped.Apps.Add(new AppScope { Exe = "chrome.exe", Name = "Google Chrome" });
+            host.Config.Wheels.Insert(1, scoped);
+            sw.DevSelectWheel(1);
+            Shot(win, Path.Combine(dir, "settings-scope.png"));
+            win.Width = 1080;
+            win.Height = 680;
+            sw.DevSelectWheel(1);
+            Shot(win, Path.Combine(dir, "settings-scope-min.png"));
+            win.Width = 1220;
+            win.Height = 800;
+            sw.DevSelectWheel(0);
+            Shot(win, Path.Combine(dir, "settings-scope-general.png"));
             win.Close();
         }
 

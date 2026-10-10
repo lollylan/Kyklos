@@ -48,7 +48,47 @@ namespace Kyklos
             return list;
         }
 
-        static string ProcessPath(uint pid)
+        /// <summary>Das Programm, das gerade vorn ist: Exe-Name ohne Endung, Fenstertitel und Titel des Hauptfensters.</summary>
+        public sealed class Front { public string ExeKey = "", Title = "", OwnerTitle = ""; }
+
+        static uint _lastPid;
+        static IntPtr _lastWnd;
+        static string _lastKey = "";
+
+        /// <summary>
+        /// Läuft im Tastatur-Hook beim Druck auf einen Auslöser, deshalb knapp gehalten: Der Programmname wird zum Fenster
+        /// gemerkt, meist bleibt man ja im selben. Fenster und Prozessnummer zusammen werden nicht so bald neu vergeben.
+        /// </summary>
+        public static Front Foreground()
+        {
+            var f = new Front();
+            IntPtr h = Native.GetForegroundWindow();
+            if (h == IntPtr.Zero) return f;
+            uint pid;
+            Native.GetWindowThreadProcessId(h, out pid);
+            if (pid != _lastPid || h != _lastWnd)
+            {
+                _lastKey = AppScope.ProgramKey(ProcessPath(pid));
+                _lastPid = pid;
+                _lastWnd = h;
+            }
+            f.ExeKey = _lastKey;
+            f.Title = TitleOf(h);
+            IntPtr root = Native.GetAncestor(h, Native.GA_ROOTOWNER);
+            f.OwnerTitle = root != IntPtr.Zero && root != h ? TitleOf(root) : "";
+            return f;
+        }
+
+        static string TitleOf(IntPtr h)
+        {
+            int len = Native.GetWindowTextLength(h);
+            if (len <= 0) return "";
+            var sb = new StringBuilder(len + 1);
+            Native.GetWindowText(h, sb, sb.Capacity);
+            return sb.ToString();
+        }
+
+        public static string ProcessPath(uint pid)
         {
             IntPtr p = Native.OpenProcess(Native.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
             if (p == IntPtr.Zero) return "";
@@ -62,11 +102,7 @@ namespace Kyklos
         }
 
         /// <summary>„C:\…\Transkript.exe“, „Transkript.exe“ und „Transkript“ meinen dasselbe Programm.</summary>
-        static string ProgramKey(string path)
-        {
-            try { return Path.GetFileNameWithoutExtension(Environment.ExpandEnvironmentVariables((path ?? "").Trim().Trim('"'))); }
-            catch (ArgumentException) { return ""; }
-        }
+        static string ProgramKey(string path) { return AppScope.ProgramKey(path); }
 
         /// <summary>Das zuletzt benutzte passende Fenster, oder null.</summary>
         public static Info Find(ActionDef a)

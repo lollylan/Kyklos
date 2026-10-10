@@ -38,7 +38,7 @@ namespace Kyklos
 
         readonly ListBox WheelList;
         readonly ToggleButton NavGeneral;
-        readonly TextBlock Status, CountText, TriggerNote, SlotTitle, SlotPos, ScaleText, ConfigPathText, VersionText, UsageHint;
+        readonly TextBlock Status, CountText, TriggerNote, ScopeNote, SlotTitle, SlotPos, ScaleText, ConfigPathText, VersionText, UsageHint;
         readonly Border SampleNote;
         readonly Button SampleKeep;
         readonly Grid EditorPanel;
@@ -48,7 +48,7 @@ namespace Kyklos
                         VariantBtn, AlternBtn;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
         readonly ComboBox TypeBox, TextModeBox, MediaBox, AddStepBox;
-        readonly StackPanel TriggerGroup, Trigger2Group, Crumbs, Swatches, PText, PKeys, POpen, PUrl, PMedia, PMacro, PFolder, StepsHost, IconHost;
+        readonly StackPanel TriggerGroup, Trigger2Group, ScopeHost, Crumbs, Swatches, PText, PKeys, POpen, PUrl, PMedia, PMacro, PFolder, StepsHost, IconHost;
         readonly CheckBox TapSwitch, CursorSwitch, ClipSwitch, AutostartSwitch;
         readonly Slider ScaleSlider;
         readonly UniformGrid SkinTiles;
@@ -86,6 +86,7 @@ namespace Kyklos
 
             WheelList = F<ListBox>("WheelList"); NavGeneral = F<ToggleButton>("NavGeneral");
             Status = F<TextBlock>("Status"); CountText = F<TextBlock>("CountText"); TriggerNote = F<TextBlock>("TriggerNote");
+            ScopeNote = F<TextBlock>("ScopeNote"); ScopeHost = F<StackPanel>("ScopeHost");
             SlotTitle = F<TextBlock>("SlotTitle"); SlotPos = F<TextBlock>("SlotPos"); ScaleText = F<TextBlock>("ScaleText");
             ConfigPathText = F<TextBlock>("ConfigPathText"); VersionText = F<TextBlock>("VersionText");
             EditorPanel = F<Grid>("EditorPanel"); GeneralPanel = F<ScrollViewer>("GeneralPanel");
@@ -153,6 +154,7 @@ namespace Kyklos
         public void DevEnterFolder() { EnterFolder(Cur); }
         public void DevCloneWheel() { CloneWheel.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); }
         public void DevHome() { ShowEditor(); SelectWheel(Cfg.Wheels[0]); }
+        public void DevSelectWheel(int i) { ShowEditor(); RebuildWheelList(); SelectWheel(Cfg.Wheels[i]); }
         public void DevScrollGeneral() { GeneralPanel.UpdateLayout(); GeneralPanel.ScrollToEnd(); }
         public void DevScrollInspector(bool end = true)
         {
@@ -566,7 +568,8 @@ namespace Kyklos
                 });
                 sp.Children.Add(new TextBlock
                 {
-                    Text = w.HasTrigger ? w.TriggerDisplay() + " halten" : "Kein Auslöser", FontSize = 12, Foreground = Res("Ink2"),
+                    Text = (w.HasTrigger ? w.TriggerDisplay() + " halten" : "Kein Auslöser") + (w.Everywhere ? "" : " · nur in " + w.AppsDisplay()),
+                    FontSize = 12, Foreground = Res("Ink2"),
                     Margin = new Thickness(0, 2, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis
                 });
                 WheelList.Items.Add(new ListBoxItem { Content = sp });
@@ -584,6 +587,7 @@ namespace Kyklos
             _loading = true;
             WheelList.SelectedIndex = Cfg.Wheels.IndexOf(w);
             _loading = was;
+            BuildScope();
             LoadStage();
             LoadInspector();
         }
@@ -637,15 +641,24 @@ namespace Kyklos
             DeleteWheel.Content = "Rad löschen";
             DeleteWheel.Tag = null;
 
-            TriggerNote.Text = TriggerProblem();
-            TriggerNote.Visibility = TriggerNote.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-            UsageHint.Text = !_wheel.HasTrigger
-                ? "Lege oben einen Auslöser fest, um dieses Rad zu öffnen."
-                : "So öffnest du das Rad: " + _wheel.TriggerDisplay() + " halten, Maus in eine Richtung bewegen, loslassen.";
+            UpdateNotes();
 
             LoadPreview();
             BuildCrumbs();
             _loading = was;
+        }
+
+        /// <summary>Hinweise unter dem Kopf: Probleme mit dem Auslöser, welches Rad wo aufgeht, wie man es öffnet.</summary>
+        void UpdateNotes()
+        {
+            TriggerNote.Text = TriggerProblem();
+            TriggerNote.Visibility = TriggerNote.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            ScopeNote.Text = TriggerNote.Text.Length > 0 ? "" : ScopeInfo();
+            ScopeNote.Visibility = ScopeNote.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            UsageHint.Text = !_wheel.HasTrigger
+                ? "Lege oben einen Auslöser fest, um dieses Rad zu öffnen."
+                : "So öffnest du das Rad: " + (_wheel.Everywhere ? "" : "in " + _wheel.AppsDisplay() + " ") +
+                  _wheel.TriggerDisplay() + " halten, Maus in eine Richtung bewegen, loslassen.";
         }
 
         void SetTrigger(Chord c, bool second)
@@ -657,7 +670,7 @@ namespace Kyklos
             Touch();
         }
 
-        /// <summary>Warnung unter den Auslösern: fehlt einer, sind beide gleich, oder nutzt ein anderes Rad denselben?</summary>
+        /// <summary>Warnung unter den Auslösern: fehlt einer, sind beide gleich, oder nutzt ein anderes Rad denselben in denselben Programmen?</summary>
         string TriggerProblem()
         {
             if (_wheel.Trigger.IsEmpty) return "Ohne Auslöser lässt sich dieses Rad nicht öffnen.";
@@ -665,13 +678,231 @@ namespace Kyklos
             bool two = !_wheel.Trigger2.IsEmpty;
             foreach (var t in _wheel.Triggers)
             {
-                var clash = Cfg.Wheels.FirstOrDefault(o => o != _wheel && o.Triggers.Any(x => x.SameAs(t)));
+                var clash = Cfg.Wheels.FirstOrDefault(o => o != _wheel && o.SameScope(_wheel) && o.Triggers.Any(x => x.SameAs(t)));
                 if (clash == null) continue;
                 return (two ? t.Display() + " nutzt" : "Diesen Auslöser nutzt") + " auch das Rad „" + clash.Name +
                        "“. Es öffnet sich das Rad, das in der Liste weiter oben steht.";
             }
             return "";
         }
+
+        // ---------------------------------------------------------------- Programme, in denen das Rad gilt
+
+        readonly Dictionary<string, ImageSource> _exeIcons = new Dictionary<string, ImageSource>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Programme, die viel Verschiedenes zeigen (Browser, Java, Fernzugriff) – bei ihnen hilft meist erst der Titel.</summary>
+        static readonly HashSet<string> Hosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "chrome", "msedge", "firefox", "opera", "brave", "vivaldi", "iexplore", "java", "javaw", "mstsc", "msrdc", "wfica32", "CDViewer"
+        };
+
+        /// <summary>Baut die Zeile „Gilt in“: ohne Einträge „Allen Programmen“, sonst ein Programm pro Zeile.</summary>
+        void BuildScope()
+        {
+            ScopeHost.Children.Clear();
+            _wheel.Apps.RemoveAll(a => a.IsEmpty);
+            if (_wheel.Apps.Count == 0)
+            {
+                var row = new WrapPanel();
+                row.Children.Add(new TextBlock { Text = "Allen Programmen", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 14, 8) });
+                row.Children.Add(AppPicker("Auf ein Programm beschränken …"));
+                ScopeHost.Children.Add(row);
+                return;
+            }
+            foreach (var a in _wheel.Apps) ScopeHost.Children.Add(AppRow(a));
+            ScopeHost.Children.Add(AppPicker("Weiteres Programm …"));
+        }
+
+        void ScopeChanged()
+        {
+            // Erst nach dem Ereignis neu aufbauen: Es kommt aus einem Element, das dabei verschwindet.
+            _w.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                BuildScope();
+                RebuildWheelList();
+                LoadStage();
+            }));
+            Touch();
+        }
+
+        FrameworkElement AppRow(AppScope a)
+        {
+            var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
+            // Symbol | Name | Titelfeld | Entfernen | Rest. Name und Titelfeld teilen sich den Platz bis zu ihrer Höchstbreite
+            // und schrumpfen bei schmalem Fenster gemeinsam, statt abgeschnitten zu werden. Jede Zeile rechnet gleich,
+            // deshalb stehen die Titelfelder untereinander.
+            var row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 70, MaxWidth = 170 });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star), MinWidth = 130, MaxWidth = 260 });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.001, GridUnitType.Star) });
+            var icon = ExeIcon(a.Path);
+            var glyph = icon != null
+                ? (FrameworkElement)new Image { Source = icon, Width = 16, Height = 16, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center }
+                : new TextBlock { Text = "", Style = (Style)_w.FindResource("Glyph"), Foreground = Res("Ink2"), Width = 16, Margin = new Thickness(0, 0, 8, 0) };
+            row.Children.Add(glyph);
+            var name = new TextBlock
+            {
+                Text = a.DisplayName, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 12, 0),
+                ToolTip = a.DisplayName + (a.Exe.Length > 0 ? " (" + a.Exe + ")" : " – erkannt am Fenstertitel")
+            };
+            Grid.SetColumn(name, 1);
+            row.Children.Add(name);
+            var title = new TextBox { Text = a.Title, Tag = "Titel enthält … (optional)" };
+            title.ToolTip = "Nur Fenster, deren Titel diesen Text enthält – etwa „Gmail“ im Browser. Leer: alle Fenster des Programms.";
+            Grid.SetColumn(title, 2);
+            row.Children.Add(title);
+            var remove = new Button
+            {
+                Style = (Style)_w.FindResource("BtnIcon"), Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "Programm entfernen", Content = new TextBlock { Text = "", Style = (Style)_w.FindResource("Glyph"), FontSize = 11 }
+            };
+            remove.Click += (s, e) => { _wheel.Apps.Remove(a); ScopeChanged(); };
+            Grid.SetColumn(remove, 3);
+            row.Children.Add(remove);
+            panel.Children.Add(row);
+
+            // Ein Browser zeigt jede Website – ohne Titel gälte das Rad in allen.
+            var hint = new TextBlock
+            {
+                Style = (Style)_w.FindResource("Help"), Margin = new Thickness(24, 4, 0, 0), MaxWidth = 460, HorizontalAlignment = HorizontalAlignment.Left
+            };
+            Action showHint = () =>
+            {
+                bool host = Hosts.Contains(a.Key) && a.TitleKey.Length == 0;
+                hint.Text = host ? "Gilt in jedem Fenster von " + a.DisplayName + ". Für eine bestimmte Website oder ein bestimmtes Programm darin " +
+                                   "einen Teil des Fenstertitels eintragen, der immer dasteht – etwa „Gmail“." : "";
+                hint.Visibility = host ? Visibility.Visible : Visibility.Collapsed;
+            };
+            showHint();
+            panel.Children.Add(hint);
+            title.TextChanged += (s, e) =>
+            {
+                a.Title = title.Text;
+                showHint();
+                UpdateNotes();
+                Touch();
+            };
+            return panel;
+        }
+
+        /// <summary>Liste der gerade offenen Programme – entsteht erst beim Aufklappen, damit sie aktuell ist.</summary>
+        ComboBox AppPicker(string placeholder)
+        {
+            var pick = new ComboBox { Tag = placeholder, MinWidth = 260, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 8) };
+            bool filling = false;
+            pick.DropDownOpened += (s, e) =>
+            {
+                filling = true;
+                pick.Items.Clear();
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var w in WindowFocus.List())
+                {
+                    var c = Candidate(w);
+                    if (c.IsEmpty || !seen.Add(c.Key + "|" + c.TitleKey) || _wheel.Apps.Any(x => x.SameAs(c))) continue;
+                    pick.Items.Add(new ComboBoxItem { Content = PickerLine(c, w.Title), Tag = c });
+                }
+                if (pick.Items.Count == 0) pick.Items.Add(new ComboBoxItem { Content = "Keine weiteren Programme offen", IsEnabled = false });
+                filling = false;
+            };
+            pick.SelectionChanged += (s, e) =>
+            {
+                var c = TagOf(pick) as AppScope;
+                if (filling || c == null) return;
+                _wheel.Apps.Add(c);
+                ScopeChanged();
+            };
+            return pick;
+        }
+
+        FrameworkElement PickerLine(AppScope c, string windowTitle)
+        {
+            var line = new StackPanel { Orientation = Orientation.Horizontal };
+            line.Children.Add(new Image { Source = ExeIcon(c.Path), Width = 16, Height = 16, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
+            line.Children.Add(new TextBlock { Text = c.DisplayName, VerticalAlignment = VerticalAlignment.Center });
+            string t = c.Exe.Length > 0 ? (windowTitle ?? "").Trim() : "";
+            if (t.Length > 0 && !string.Equals(t, c.DisplayName, StringComparison.OrdinalIgnoreCase))
+                line.Children.Add(new TextBlock
+                {
+                    Text = "  ·  " + t, Foreground = Res("Ink2"), MaxWidth = 300, TextTrimming = TextTrimming.CharacterEllipsis,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+            return line;
+        }
+
+        /// <summary>Universal-Apps teilen sich einen Rahmenprozess; bei ihnen hilft nur der Titel.</summary>
+        static AppScope Candidate(WindowFocus.Info w)
+        {
+            bool frame = string.Equals(w.ExeName, WindowFocus.AppFrameHost, StringComparison.OrdinalIgnoreCase) || w.ExePath.Length == 0;
+            if (frame) return new AppScope { Name = w.Title, Title = w.Title };
+            return new AppScope { Exe = w.ExeName, Path = w.ExePath, Name = FriendlyName(w.ExePath) };
+        }
+
+        /// <summary>„Microsoft Outlook“ statt „OUTLOOK.EXE“ – aus der Dateibeschreibung der Exe, notfalls ihr Name.</summary>
+        static string FriendlyName(string path)
+        {
+            try
+            {
+                var v = FileVersionInfo.GetVersionInfo(path);
+                foreach (var n in new[] { v.FileDescription, v.ProductName })
+                {
+                    string t = (n ?? "").Trim();
+                    if (t.Length > 1 && t.Length <= 40) return t;
+                }
+            }
+            catch (Exception) { }   // Datei nicht lesbar: dann eben der Dateiname
+            return AppScope.ProgramKey(path);
+        }
+
+        ImageSource ExeIcon(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            ImageSource img;
+            if (_exeIcons.TryGetValue(path, out img)) return img;
+            try
+            {
+                if (File.Exists(path))
+                    using (var ico = System.Drawing.Icon.ExtractAssociatedIcon(path))
+                    {
+                        var src = Imaging.CreateBitmapSourceFromHIcon(ico.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                        src.Freeze();
+                        img = src;
+                    }
+            }
+            catch (Exception) { }   // ohne Symbol geht es auch
+            _exeIcons[path] = img;
+            return img;
+        }
+
+        /// <summary>Welches Rad geht wo auf? Nur wenn sich Räder einen Auslöser teilen oder dieses auf Programme beschränkt ist.</summary>
+        string ScopeInfo()
+        {
+            if (!_wheel.HasTrigger) return "";
+            foreach (var t in _wheel.Triggers)
+            {
+                var others = Cfg.Wheels.Where(o => o != _wheel && !o.SameScope(_wheel) && o.Triggers.Any(x => x.SameAs(t))).ToList();
+                if (!_wheel.Everywhere)
+                {
+                    var fallback = others.FirstOrDefault(o => o.Everywhere);
+                    if (fallback != null)
+                        return "In " + _wheel.AppsDisplay() + " öffnet " + t.Display() + " dieses Rad, sonst das Rad „" + fallback.Name + "“.";
+                }
+                else
+                {
+                    var special = others.Where(o => !o.Everywhere).ToList();
+                    if (special.Count == 1)
+                        return "In " + special[0].AppsDisplay() + " öffnet " + t.Display() + " stattdessen das Rad „" + special[0].Name + "“.";
+                    if (special.Count > 1)
+                        return t.Display() + " öffnet in manchen Programmen ein eigenes Rad: " +
+                               string.Join(", ", special.Select(o => "„" + o.Name + "“ in " + o.AppsDisplay())) + ".";
+                }
+            }
+            if (!_wheel.Everywhere) return "In anderen Programmen bleibt " + _wheel.Trigger.Display() + " eine ganz normale Taste.";
+            return "";
+        }
+
 
         void BuildCrumbs()
         {

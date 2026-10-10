@@ -13,7 +13,7 @@ namespace Kyklos
     /// </summary>
     public static class InputHook
     {
-        public sealed class Binding { public Chord Trigger; public string WheelId; }
+        public sealed class Binding { public Chord Trigger; public string WheelId; public AppScope[] Apps = new AppScope[0]; }
 
         public static event Action<Binding> TriggerDown;  // Auslöser gedrückt (welcher, für welches Rad)
         public static event Action TriggerUp;             // Auslöser losgelassen
@@ -110,12 +110,20 @@ namespace Kyklos
         {
             bool ctrl = Native.IsDown(Native.VK_CONTROL), alt = Native.IsDown(Native.VK_MENU), shift = Native.IsDown(Native.VK_SHIFT),
                  win = Native.IsDown(Native.VK_LWIN) || Native.IsDown(Native.VK_RWIN);
+            // Mehrere Räder dürfen dieselbe Taste haben, wenn sie in verschiedenen Programmen gelten. Dann entscheidet das
+            // Fenster vorn: das Rad eigens für dieses Programm vor dem, das überall gilt. Passt keins, bleibt die Taste normal.
+            Binding best = null;
+            int bestScore = 0;
+            WindowFocus.Front front = null;
             foreach (var b in _bindings)
             {
                 var t = b.Trigger;
-                if (t.Mouse == mouse && t.Code == code && t.Ctrl == ctrl && t.Alt == alt && t.Shift == shift && t.Win == win) return b;
+                if (t.Mouse != mouse || t.Code != code || t.Ctrl != ctrl || t.Alt != alt || t.Shift != shift || t.Win != win) continue;
+                if (b.Apps.Length > 0 && front == null) front = WindowFocus.Foreground();
+                int score = front == null ? 1 : Wheel.Score(b.Apps, front.ExeKey, front.Title, front.OwnerTitle);
+                if (score > bestScore) { best = b; bestScore = score; }
             }
-            return null;
+            return best;
         }
 
         static Chord Capture(bool mouse, int code)

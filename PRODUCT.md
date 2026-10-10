@@ -49,7 +49,9 @@ ein Auswahlrad aus Computerspielen: Richtung statt Tastenposition, eine Geste st
   Zwischenablage, mit der in Windows eingebauten Texterkennung, optional zusätzlich Tesseract, wenn installiert; für gefaxte Arztbriefe), Makro (mehrere Schritte mit Pausen, Mausklicks an festen Koordinaten und „Fenster nach vorn holen“), Unterrad.
 - Das Rad darf dem Zielprogramm nie den Tastaturfokus nehmen.
 - Fenster von Programmen, die als Administrator laufen, sind für ein normal gestartetes Tool nicht erreichbar (Windows-Schutz).
-- Offen: programmabhängige Räder (anderes Rad je nach aktivem Programm) sind noch nicht umgesetzt.
+- Programmabhängige Räder: Ein Rad kann auf Programme beschränkt werden (Auswahl aus den offenen Fenstern, erkannt am
+  Exe-Namen, optional zusätzlich an einem Teil des Fenstertitels). Mehrere Räder dürfen dieselbe Taste haben; das Rad
+  eigens für das Programm vorn gewinnt vor dem allgemeinen. Ohne passendes Rad bleibt die Taste eine normale Taste.
 
 ## Brand Commitments
 
