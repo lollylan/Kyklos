@@ -42,11 +42,15 @@ namespace Kyklos
             bool all = true;
             for (int i = 1; i < args.Length; i++)
             {
-                string text;
-                using (var bmp = new System.Drawing.Bitmap(args[i]))
-                    text = System.Threading.Tasks.Task.Run(() => Ocr.Recognize(bmp)).Result;
-                File.WriteAllText(args[i] + ".txt", text ?? "[keine Texterkennung in Windows]", System.Text.Encoding.UTF8);
-                all &= !string.IsNullOrEmpty(text);
+                // Jede Lesart daneben (<bild>.windows.txt, .windows-fett.txt, .tesseract.txt), die gewählte in <bild>.txt
+                string file = args[i];
+                Ocr.Reading r;
+                using (var bmp = new System.Drawing.Bitmap(file))
+                    r = System.Threading.Tasks.Task.Run(() => Ocr.Recognize(bmp, (name, t) =>
+                        File.WriteAllText(file + "." + name + ".txt", t, new System.Text.UTF8Encoding(false)))).Result;
+                File.WriteAllText(file + ".txt", r == null ? "[keine Texterkennung]" : r.Text, new System.Text.UTF8Encoding(false));
+                File.WriteAllText(file + ".engine.txt", r == null ? "" : r.Engine);
+                all &= r != null && r.Text.Length > 0;
             }
             return all ? 0 : 1;
         }

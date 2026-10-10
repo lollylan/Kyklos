@@ -11,6 +11,9 @@ $here = Join-Path $env:TEMP 'kyklos-e2e'
 $dir = Join-Path $here 'app'
 New-Item -ItemType Directory -Force $dir | Out-Null
 Copy-Item (Join-Path $repo 'dist\Kyklos.exe') $dir -Force
+# Liegt ein Sprachmodell fuer Tesseract neben der Exe, kommt es mit - dann prueft der Test auch diesen Weg.
+$tessdata = Join-Path $repo 'dist\tessdata'
+if (Test-Path (Join-Path $tessdata 'deu.traineddata')) { Copy-Item $tessdata $dir -Recurse -Force }
 
 $json = @'
 {

@@ -46,7 +46,7 @@ ein Auswahlrad aus Computerspielen: Richtung statt Tastenposition, eine Geste st
   Fokus kurz übernimmt; danach geht er an das Zielprogramm zurück, erst dann wird eingefügt.
 - Aktionen: Text einfügen (mit Platzhaltern für Datum, Uhrzeit, Zwischenablage, Cursorposition), Tastenkombination,
   Programm/Datei/Ordner öffnen, Website, Medien- und Systemtasten, Text erkennen (Bildschirmbereich per OCR in die
-  Zwischenablage, mit der in Windows eingebauten Texterkennung, für gefaxte Arztbriefe), Makro (mehrere Schritte mit Pausen, Mausklicks an festen Koordinaten und „Fenster nach vorn holen“), Unterrad.
+  Zwischenablage, mit der in Windows eingebauten Texterkennung, optional zusätzlich Tesseract, wenn installiert; für gefaxte Arztbriefe), Makro (mehrere Schritte mit Pausen, Mausklicks an festen Koordinaten und „Fenster nach vorn holen“), Unterrad.
 - Das Rad darf dem Zielprogramm nie den Tastaturfokus nehmen.
 - Fenster von Programmen, die als Administrator laufen, sind für ein normal gestartetes Tool nicht erreichbar (Windows-Schutz).
 - Offen: programmabhängige Räder (anderes Rad je nach aktivem Programm) sind noch nicht umgesetzt.

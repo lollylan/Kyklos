@@ -34,13 +34,13 @@ namespace Kyklos
             if (pick == null) return false;
 
             var toast = new CaptureToast(hot, skin, pick.Release);
-            string text;
+            Ocr.Reading reading;
             using (pick.Image)
             {
                 var job = Ocr.Recognize(pick.Image);
                 // Kurze Erkennungen ohne Zwischenstand, sonst flackert die Meldung.
                 if (await Task.WhenAny(job, Task.Delay(300)) != job) toast.Busy();
-                try { text = await job; }
+                try { reading = await job; }
                 catch (Exception ex)
                 {
                     Log.Write("Texterkennung fehlgeschlagen: " + ex);
@@ -49,6 +49,7 @@ namespace Kyklos
                 }
             }
 
+            string text = reading == null ? null : reading.Text;
             if (text == null)
             {
                 toast.Fail("Texterkennung fehlt in Windows",
@@ -67,7 +68,10 @@ namespace Kyklos
                 return false;
             }
             int lines = text.Split('\n').Count(l => l.Trim().Length > 0);
-            toast.Done(text, lines == 1 ? "1 Zeile" : lines + " Zeilen");
+            string meta = lines == 1 ? "1 Zeile" : lines + " Zeilen";
+            // Nur wenn es eine Wahl gab: Dann hilft es beim Einschätzen, welche Erkennung gelesen hat.
+            if (reading.Choice) meta += " · " + reading.Engine;
+            toast.Done(text, meta);
             return true;
         }
 
@@ -120,18 +124,85 @@ namespace Kyklos
             return _engine;
         }
 
-        /// <returns>Erkannter Text mit Zeilenumbrüchen (\n), "" ohne Text, null ohne Erkennung in Windows.</returns>
-        public static async Task<string> Recognize(SD.Bitmap region)
+        public sealed class Reading
         {
+            public string Text = "";
+            public string Engine = "";      // „Windows“ oder „Tesseract“
+            public bool Choice;             // es standen mehrere Engines zur Wahl
+        }
+
+        /// <summary>
+        /// Liest den Ausschnitt auf mehrere Arten und nimmt die plausibelste Lesart. Die Windows-Erkennung liest das
+        /// Bild zweimal: wie es ist und mit verdickter Schrift. Verdicken repariert die gebrochenen Striche eines Faxes in
+        /// normaler Auflösung, lässt aber scharfe Schrift verkleben – welcher Fall vorliegt, sieht man dem Bild schlecht
+        /// an, dem Ergebnis aber gut. Ist Tesseract installiert, liest es parallel mit: Bei Serifen- und
+        /// Schreibmaschinenschrift im Fax ist es deutlich genauer, bei serifenloser Schrift oft die Windows-Erkennung.
+        /// </summary>
+        /// <param name="candidate">Für die Sichtprüfung: bekommt jede Lesart mit Namen.</param>
+        /// <returns>null, wenn weder die Windows-Erkennung noch Tesseract verfügbar ist.</returns>
+        public static async Task<Reading> Recognize(SD.Bitmap region, Action<string, string> candidate = null)
+        {
+            var tess = Tesseract.Find();
+            Task<List<Piece>> tessJob = tess == null ? null : Tesseract.Read(tess, region);
+            var readings = new List<Reading>();
+
             var engine = Engine();
-            if (engine == null) return null;
-            int max = (int)Windows.Media.Ocr.OcrEngine.MaxImageDimension;
-            var img = await Task.Run(() => Prepare(region, max));
-            var bmp = Windows.Graphics.Imaging.SoftwareBitmap.CreateCopyFromBuffer(
-                Windows.Security.Cryptography.CryptographicBuffer.CreateFromByteArray(img.Pixels),
-                Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8, img.Width, img.Height, Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied);
-            var result = await Await(engine.RecognizeAsync(bmp));
-            return Format(result);
+            if (engine != null)
+            {
+                int max = (int)Windows.Media.Ocr.OcrEngine.MaxImageDimension;
+                var img = await Task.Run(() => Prepare(region, max));
+                byte[] thick = null;
+                await Task.Run(() => { thick = (byte[])img.Pixels.Clone(); Thicken(thick, img.Width, img.Height, img.DarkInk); });
+                readings.Add(new Reading { Engine = "Windows", Text = Format(Pieces(await Await(engine.RecognizeAsync(Soft(img.Pixels, img.Width, img.Height))))) });
+                readings.Add(new Reading { Engine = "Windows", Text = Format(Pieces(await Await(engine.RecognizeAsync(Soft(thick, img.Width, img.Height))))) });
+                if (candidate != null) { candidate("windows", readings[0].Text); candidate("windows-fett", readings[1].Text); }
+            }
+            if (tessJob != null)
+            {
+                var pieces = await tessJob;
+                if (pieces != null)
+                {
+                    readings.Add(new Reading { Engine = "Tesseract", Text = Format(pieces) });
+                    if (candidate != null) candidate("tesseract", readings[readings.Count - 1].Text);
+                }
+            }
+            if (readings.Count == 0) return null;
+
+            // Bei Gleichstand gewinnt die zuerst genannte Lesart.
+            var best = readings[0];
+            foreach (var r in readings.Skip(1)) if (Plausibility(r.Text) > Plausibility(best.Text)) best = r;
+            best.Choice = readings.Select(r => r.Engine).Distinct().Count() > 1;
+            return best;
+        }
+
+        static Windows.Graphics.Imaging.SoftwareBitmap Soft(byte[] px, int w, int h)
+        {
+            return Windows.Graphics.Imaging.SoftwareBitmap.CreateCopyFromBuffer(
+                Windows.Security.Cryptography.CryptographicBuffer.CreateFromByteArray(px),
+                Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8, w, h, Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied);
+        }
+
+        static readonly System.Text.RegularExpressions.Regex WordShape = new System.Text.RegularExpressions.Regex(
+            @"^[(\[„""]?([A-ZÄÖÜ]?[a-zäöüß]+(-[A-ZÄÖÜ]?[a-zäöüß]+)*|[A-ZÄÖÜ]{2,}[a-z]?|[A-ZÄÖÜ]|[a-zäöüß]{1,3})[)\]“""]?[.,:;!?]?$");
+        static readonly System.Text.RegularExpressions.Regex NumberShape = new System.Text.RegularExpressions.Regex(
+            @"^[(]?[<>~±+-]?\d+([.,:/-]\d+)*[.,]?(%|°)?[)]?[.,:;]?$");
+        static readonly System.Text.RegularExpressions.Regex UnitShape = new System.Text.RegularExpressions.Regex(
+            @"^(mg|g|µg|ml|l|dl|mmol|µmol|U|IE|mg/dl|ml/min|mmol/l|g/dl|/µl|%)[.,;]?$");
+
+        /// <summary>
+        /// Wie sehr ein Ergebnis nach Text aussieht: Anteil der Zeichen in sauber geformten Wörtern, Zahlen und Einheiten.
+        /// Fehlerkennungen wie „Ran)iprif“ oder „t•ellitus“ fallen heraus. Kein Wörterbuch – es wird nichts „korrigiert“,
+        /// nur zwischen zwei Lesarten desselben Bilds gewählt.
+        /// </summary>
+        public static double Plausibility(string text)
+        {
+            double good = 0, all = 0;
+            foreach (var t in text.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                all += t.Length;
+                if (WordShape.IsMatch(t) || NumberShape.IsMatch(t) || UnitShape.IsMatch(t)) good += t.Length;
+            }
+            return all == 0 ? 0 : good / all;
         }
 
         static Task<T> Await<T>(Windows.Foundation.IAsyncOperation<T> op)
@@ -146,31 +217,60 @@ namespace Kyklos
             return tcs.Task;
         }
 
-        /// <summary>
-        /// Zeilen in Lesereihenfolge. Ein deutlich größerer Abstand als sonst zwischen den Zeilen wird zur Leerzeile,
-        /// damit Absätze und Abschnitte des Briefs erhalten bleiben.
-        /// </summary>
-        static string Format(Windows.Media.Ocr.OcrResult result)
+        /// <summary>Eine erkannte Zeile oder ein Zeilenstück mit seiner Lage im Bild.</summary>
+        public sealed class Piece
         {
-            var lines = new List<string>();
-            var top = new List<double>();
-            var bottom = new List<double>();
+            public string Text;
+            public double Left, Top, Bottom;
+            public double Middle { get { return (Top + Bottom) / 2; } }
+        }
+
+        static List<Piece> Pieces(Windows.Media.Ocr.OcrResult result)
+        {
+            var pieces = new List<Piece>();
             foreach (var line in result.Lines)
             {
                 string t = line.Text.Trim();
                 if (t.Length == 0) continue;
-                double y0 = double.MaxValue, y1 = double.MinValue;
+                var p = new Piece { Text = t, Left = double.MaxValue, Top = double.MaxValue, Bottom = double.MinValue };
                 foreach (var w in line.Words)
                 {
                     var r = w.BoundingRect;
-                    y0 = Math.Min(y0, r.Y);
-                    y1 = Math.Max(y1, r.Y + r.Height);
+                    p.Left = Math.Min(p.Left, r.X);
+                    p.Top = Math.Min(p.Top, r.Y);
+                    p.Bottom = Math.Max(p.Bottom, r.Y + r.Height);
                 }
-                lines.Add(t);
-                top.Add(y0);
-                bottom.Add(y1);
+                pieces.Add(p);
             }
-            if (lines.Count == 0) return "";
+            return pieces;
+        }
+
+        /// <summary>
+        /// Zeilen in Lesereihenfolge. Die Engines zerlegen Zeilen mit großen Lücken (Tabellen, Schreibmaschinenschrift)
+        /// in Blöcke und liefern erst alle linken, dann alle rechten Teile; was auf derselben Höhe steht, wird deshalb
+        /// wieder zu einer Zeile, von links nach rechts. Ein deutlich größerer Abstand als sonst zwischen den Zeilen wird
+        /// zur Leerzeile, damit Absätze und Abschnitte des Briefs erhalten bleiben.
+        /// </summary>
+        static string Format(List<Piece> pieces)
+        {
+            if (pieces.Count == 0) return "";
+
+            var rows = new List<List<Piece>>();
+            foreach (var p in pieces.OrderBy(p => p.Middle))
+            {
+                var row = rows.Count > 0 ? rows[rows.Count - 1] : null;
+                if (row != null && p.Middle > row.Min(q => q.Top) && p.Middle < row.Max(q => q.Bottom)) row.Add(p);
+                else rows.Add(new List<Piece> { p });
+            }
+            var lines = new List<string>();
+            var top = new List<double>();
+            var bottom = new List<double>();
+            foreach (var row in rows)
+            {
+                lines.Add(string.Join(" ", row.OrderBy(q => q.Left).Select(q => q.Text)));
+                top.Add(row.Min(q => q.Top));
+                bottom.Add(row.Max(q => q.Bottom));
+            }
 
             double height = Median(Enumerable.Range(0, lines.Count).Select(i => bottom[i] - top[i]));
             var gaps = Enumerable.Range(1, lines.Count - 1).Select(i => top[i] - bottom[i - 1]).ToList();
@@ -197,6 +297,7 @@ namespace Kyklos
         {
             public byte[] Pixels;
             public int Width, Height;
+            public bool DarkInk;    // dunkle Schrift auf hellem Grund
         }
 
         /// <summary>
@@ -240,12 +341,13 @@ namespace Kyklos
             double k = Math.Min(2.0, (maxDimension - 2 * pad) / (double)Math.Max(w, h));
             int sw = Math.Max(1, (int)Math.Round(w * k)), sh = Math.Max(1, (int)Math.Round(h * k));
             int ow = sw + 2 * pad, oh = sh + 2 * pad;
+            SD.Color paper = EdgeColor(px, w, h);
             using (var clean = FromPixels(px, w, h))
             using (var big = new SD.Bitmap(ow, oh, SDI.PixelFormat.Format32bppArgb))
             {
                 using (var g = SD.Graphics.FromImage(big))
                 {
-                    g.Clear(EdgeColor(px, w, h));
+                    g.Clear(paper);
                     g.InterpolationMode = SD.Drawing2D.InterpolationMode.HighQualityBicubic;
                     g.PixelOffsetMode = SD.Drawing2D.PixelOffsetMode.HighQuality;
                     using (var attr = new SDI.ImageAttributes())
@@ -254,8 +356,38 @@ namespace Kyklos
                         g.DrawImage(clean, new SD.Rectangle(pad, pad, sw, sh), 0, 0, w, h, SD.GraphicsUnit.Pixel, attr);
                     }
                 }
-                return new Prepared { Pixels = Pixels(big), Width = ow, Height = oh };
+                return new Prepared { Pixels = Pixels(big), Width = ow, Height = oh, DarkInk = paper.R + paper.G + paper.B >= 384 };
             }
+        }
+
+        /// <summary>
+        /// Verdickt die Schrift um einen Bildpunkt (Graustufen, 3 × 3). Ein Fax in normaler Auflösung hat nur halb so
+        /// viele Zeilen wie Spalten; dünne Querstriche und Serifen brechen dabei weg, und die Engine liest Bruchstücke als
+        /// fremde Zeichen. Gemessen an simulierten Faxen in Serifenschrift: ein Siebtel weniger Zeichenfehler. Scharfe
+        /// Schrift verklebt dagegen – deshalb nur als zweite Lesart (siehe Recognize). Heller Text auf dunklem Grund wird
+        /// ebenso verdickt.
+        /// </summary>
+        static void Thicken(byte[] px, int w, int h, bool darkInk)
+        {
+            var g = new byte[w * h];
+            for (int i = 0; i < g.Length; i++) g[i] = (byte)((px[i * 4] * 29 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 77) >> 8);
+            var t = new byte[g.Length];
+            for (int pass = 0; pass < 2; pass++)       // erst waagerecht, dann senkrecht – zusammen ein 3 × 3-Fenster
+            {
+                byte[] src = pass == 0 ? g : t, dst = pass == 0 ? t : g;
+                int step = pass == 0 ? 1 : w;
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                    {
+                        int i = y * w + x;
+                        bool hasPrev = pass == 0 ? x > 0 : y > 0, hasNext = pass == 0 ? x < w - 1 : y < h - 1;
+                        byte v = src[i];
+                        if (hasPrev) v = darkInk ? Math.Min(v, src[i - step]) : Math.Max(v, src[i - step]);
+                        if (hasNext) v = darkInk ? Math.Min(v, src[i + step]) : Math.Max(v, src[i + step]);
+                        dst[i] = v;
+                    }
+            }
+            for (int i = 0; i < g.Length; i++) { px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = g[i]; }
         }
 
         /// <summary>Mittlere Farbe des Bildrands – fast immer das Papier bzw. der Fensterhintergrund.</summary>
@@ -303,6 +435,151 @@ namespace Kyklos
             var src = BitmapSource.Create(bmp.Width, bmp.Height, 96, 96, PixelFormats.Bgra32, null, Pixels(bmp), bmp.Width * 4);
             src.Freeze();
             return src;
+        }
+    }
+
+    // ==================================================================== Tesseract (optional)
+
+    /// <summary>
+    /// Tesseract, die quelloffene Texterkennung (Apache-Lizenz 2.0), wenn sie auf dem PC installiert ist. Kyklos liefert
+    /// sie nicht mit, sondern ruft das installierte Programm auf. Gebraucht wird das deutsche Sprachmodell
+    /// deu.traineddata – aus Tesseracts eigenem Modellordner oder aus einem Ordner „tessdata“ neben Kyklos.exe, damit es
+    /// sich auch ohne Administratorrechte nachrüsten lässt. Das Bild geht über eine Pipe an Tesseract, nicht über eine
+    /// Datei: Patientendaten landen nicht auf der Festplatte.
+    /// </summary>
+    public static class Tesseract
+    {
+        public sealed class Setup
+        {
+            public string Exe, Data;
+        }
+
+        const string Model = "deu.traineddata";
+        const int TimeoutMs = 20000;
+        static string _missingLogged;
+
+        /// <summary>Sucht bei jedem Aufruf neu – so wirkt eine Installation ohne Neustart von Kyklos.</summary>
+        public static Setup Find()
+        {
+            try
+            {
+                string here = AppDomain.CurrentDomain.BaseDirectory;
+                var exes = new List<string>
+                {
+                    System.IO.Path.Combine(here, "Tesseract-OCR", "tesseract.exe"),
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Tesseract-OCR", "tesseract.exe"),
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Tesseract-OCR", "tesseract.exe"),
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Tesseract-OCR", "tesseract.exe"),
+                };
+                foreach (string dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';'))
+                    if (dir.Trim().Length > 0) exes.Add(System.IO.Path.Combine(dir.Trim().Trim('"'), "tesseract.exe"));
+                string exe = exes.FirstOrDefault(System.IO.File.Exists);
+                if (exe == null) return null;
+
+                var data = new List<string>
+                {
+                    System.IO.Path.Combine(here, "tessdata"),
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Kyklos", "tessdata"),
+                    System.IO.Path.Combine(System.IO.Path.GetDirectoryName(exe), "tessdata"),
+                };
+                string prefix = Environment.GetEnvironmentVariable("TESSDATA_PREFIX");
+                if (!string.IsNullOrWhiteSpace(prefix)) { data.Add(prefix.Trim()); data.Add(System.IO.Path.Combine(prefix.Trim(), "tessdata")); }
+                string dataDir = data.FirstOrDefault(d => System.IO.File.Exists(System.IO.Path.Combine(d, Model)));
+                if (dataDir == null)
+                {
+                    if (_missingLogged != exe) Log.Write("Tesseract gefunden (" + exe + "), aber ohne deutsches Sprachmodell " + Model + " – wird nicht genutzt.");
+                    _missingLogged = exe;
+                    return null;
+                }
+                return new Setup { Exe = exe, Data = dataDir };
+            }
+            catch (Exception ex)
+            {
+                Log.Write("Tesseract-Suche fehlgeschlagen: " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <returns>Erkannte Zeilen; null, wenn Tesseract scheitert (dann zählt nur die Windows-Erkennung).</returns>
+        public static Task<List<Ocr.Piece>> Read(Setup setup, SD.Bitmap region)
+        {
+            byte[] png;
+            using (var ms = new System.IO.MemoryStream())
+            {
+                region.Save(ms, SDI.ImageFormat.Png);
+                png = ms.ToArray();
+            }
+            return Task.Run(() =>
+            {
+                try { return Run(setup, png); }
+                catch (Exception ex)
+                {
+                    Log.Write("Tesseract fehlgeschlagen: " + ex.Message);
+                    return null;
+                }
+            });
+        }
+
+        static List<Ocr.Piece> Run(Setup setup, byte[] png)
+        {
+            // psm 6: ein zusammenhängender Textblock – das ist, was jemand um eine Stelle im Brief aufzieht.
+            var psi = new System.Diagnostics.ProcessStartInfo(setup.Exe,
+                "stdin stdout --tessdata-dir \"" + setup.Data.TrimEnd('\\') + "\" -l deu --psm 6 -c tessedit_create_tsv=1 -c tessedit_create_txt=0")
+            {
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
+            };
+            psi.EnvironmentVariables["OMP_THREAD_LIMIT"] = "1";     // für einen kleinen Ausschnitt schneller als viele Threads
+            using (var p = System.Diagnostics.Process.Start(psi))
+            {
+                var output = p.StandardOutput.ReadToEndAsync();
+                var errors = p.StandardError.ReadToEndAsync();
+                var input = p.StandardInput.BaseStream;
+                input.Write(png, 0, png.Length);
+                input.Close();
+                if (!p.WaitForExit(TimeoutMs))
+                {
+                    try { p.Kill(); } catch (InvalidOperationException) { }
+                    Log.Write("Tesseract antwortet nicht – abgebrochen.");
+                    return null;
+                }
+                if (p.ExitCode != 0)
+                {
+                    Log.Write("Tesseract Exitcode " + p.ExitCode + ": " + errors.Result.Trim());
+                    return null;
+                }
+                return ParseTsv(output.Result);
+            }
+        }
+
+        /// <summary>TSV-Ausgabe: eine Zeile je Wort mit Block, Absatz, Zeile und Lage; daraus werden Zeilenstücke.</summary>
+        static List<Ocr.Piece> ParseTsv(string tsv)
+        {
+            var lines = new Dictionary<string, Ocr.Piece>();
+            var order = new List<string>();
+            foreach (string row in tsv.Split('\n'))
+            {
+                var c = row.TrimEnd('\r').Split('\t');
+                if (c.Length < 12 || c[0] != "5") continue;     // Ebene 5 = Wort
+                string text = c[11].Trim();
+                int left, top, height;
+                if (text.Length == 0 || !int.TryParse(c[6], out left) || !int.TryParse(c[7], out top) || !int.TryParse(c[9], out height)) continue;
+                string key = c[2] + "/" + c[3] + "/" + c[4];
+                Ocr.Piece p;
+                if (!lines.TryGetValue(key, out p))
+                {
+                    p = new Ocr.Piece { Text = text, Left = left, Top = top, Bottom = top + height };
+                    lines[key] = p;
+                    order.Add(key);
+                    continue;
+                }
+                p.Text += " " + text;
+                p.Left = Math.Min(p.Left, left);
+                p.Top = Math.Min(p.Top, top);
+                p.Bottom = Math.Max(p.Bottom, top + height);
+            }
+            return order.Select(k => lines[k]).ToList();
         }
     }
 

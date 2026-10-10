@@ -138,10 +138,38 @@ Im Makro lässt sich direkt weitermachen, etwa: *Text erkennen* → *Fenster nac
 Tastenkombination `Strg + V`. Wird die Auswahl abgebrochen oder kein Text erkannt, hält das Makro an, statt den alten
 Inhalt der Zwischenablage einzufügen.
 
-**Gegenlesen bleibt Pflicht**, vor allem bei Dosierungen und Zahlen. Verrauschte Faxe werden vor der Erkennung entstört.
-Bei sehr kleiner Schrift kann die Erkennung aber Buchstaben verwechseln oder einzelne Wörter auslassen. Am besten das
-Fax vorher so weit vergrößern, dass es gut lesbar ist; ab normaler Lesegröße ist die Erkennung zuverlässig. Fehlt die
-deutsche Texterkennung in Windows (selten), sagt die Tafel, wo sie sich nachinstallieren lässt.
+**Gegenlesen bleibt Pflicht**, vor allem bei Dosierungen und Zahlen. Kyklos liest jeden Ausschnitt mehrfach – so wie er
+ist und mit nachgezogenen Strichen, denn im Fax-Modus „Normal" brechen dünne Querstriche und Serifen weg – und nimmt die
+Lesart, die am ehesten nach Wörtern und Zahlen aussieht. Korrigiert wird dabei nichts. Bei Faxen in Serifen- oder
+Schreibmaschinenschrift bleiben trotzdem Buchstabenfehler; dann hilft Tesseract (unten). Zeilen werden nach ihrer Lage
+zusammengesetzt, sodass Tabellenzeilen (Wert, Einheit, Referenz) zusammenbleiben. Fehlt die deutsche Texterkennung in
+Windows (selten), sagt die Tafel, wo sie sich nachinstallieren lässt.
+
+### Genauer mit Tesseract (optional)
+
+[Tesseract](https://github.com/tesseract-ocr/tesseract) ist eine quelloffene Texterkennung (Apache-Lizenz 2.0), die
+ebenfalls nur auf dem PC läuft. Ist sie installiert, liest Kyklos jeden Ausschnitt zusätzlich damit und wählt die
+plausiblere Lesart; die Tafel nennt dann, welche Erkennung gewonnen hat. Ohne Tesseract ändert sich nichts.
+
+Gemessen an 36 simulierten Faxen (Zeichenfehler, weniger ist besser):
+
+| Fax | nur Windows | mit Tesseract |
+|---|---|---|
+| Serifenschrift (Times), Modus „Normal" | 38 % | 20 % |
+| Schreibmaschine (Courier), Modus „Normal" | 82 % | 44 % |
+| Serifenlos (Arial) oder Modus „Fein" | 0,5–6 % | 0,5–5 % |
+
+Einrichten:
+
+1. Tesseract für Windows installieren, z. B. über den Installer der [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki).
+   Kyklos findet es unter `Programme\Tesseract-OCR`, `AppData\Local\Programs\Tesseract-OCR`, im Suchpfad oder in einem
+   Ordner `Tesseract-OCR` neben `Kyklos.exe`.
+2. Das deutsche Sprachmodell `deu.traineddata` aus
+   [tessdata_fast](https://github.com/tesseract-ocr/tessdata_fast/raw/main/deu.traineddata) (1,5 MB) in einen Ordner
+   `tessdata` neben `Kyklos.exe` legen – das geht ohne Administratorrechte. Alternativ beim Installer „German"
+   mitinstallieren. Die Variante „fast" war im Test genauer als „best" und die Standardvariante.
+
+Das Bild geht über eine Pipe an Tesseract, nicht über eine Datei; nichts davon landet auf der Festplatte.
 
 ## Dateien
 
@@ -151,6 +179,7 @@ deutsche Texterkennung in Windows (selten), sagt die Tafel, wo sie sich nachinst
 | `Kyklos.json` | Die Konfiguration, liegt neben der Exe (portabel). Ist der Ordner schreibgeschützt, unter `%APPDATA%\Kyklos`. Eine `Shortcut.json` aus der Zeit vor der Umbenennung wird beim ersten Start übernommen (kopiert). |
 | `Kyklos.json.tmp` | Zwischendatei beim Speichern. Bleibt nur liegen, wenn ein anderes Programm (Virenscanner, Synchronisierung) die Konfiguration bis zum Beenden festgehalten hat – ihr Inhalt wird beim nächsten Start übernommen. |
 | `Kyklos.log` | Entsteht nur, wenn etwas schiefgeht. |
+| `tessdata\deu.traineddata` | Optional: deutsches Sprachmodell für [Tesseract](#genauer-mit-tesseract-optional). |
 
 Zum Mitnehmen auf einen anderen PC genügen Exe und `Kyklos.json`.
 
