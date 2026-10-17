@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "galerie": {
+    "autor": "Kyklos",
+    "beschreibung": "Zehn Normalbefunde der Untersuchung als Textbausteine. Beispieltexte, bitte vor Gebrauch prüfen.",
+    "programm": "Praxisverwaltungssystem"
+  },
+  "wheels": [
+    {
+      "id": "norm0001",
+      "name": "Normbefunde",
+      "slots": [
+        {
+          "label": "Allgemein",
+          "icon": "v:person",
+          "color": "#E8EAED",
+          "action": {
+            "type": "text",
+            "text": "Patient in gutem Allgemein- und normalem Ernährungszustand, wach, zu allen Qualitäten orientiert, afebril.\n{oder}\nGuter AZ, normaler EZ. Patient wach und allseits orientiert, {~kein Fieber | afebril | Temperatur im Normbereich}.\n{oder}\nPatient wach, zeitlich, örtlich und zur Person orientiert, in gutem Allgemein- und normalem Ernährungszustand, fieberfrei.",
+            "sample": true
+          }
+        },
+        {
+          "label": "Herz",
+          "icon": "v:herz",
+          "color": "#FF7B7B",
+          "action": {
+            "type": "text",
+            "text": "Cor: Herztöne rein und rhythmisch, keine pathologischen Herzgeräusche, normofrequent. Keine peripheren Ödeme, Halsvenen nicht gestaut.",
+            "sample": true
+          }
+        },
+        {
+          "label": "Lunge",
+          "icon": "v:lunge",
+          "color": "#62ABFF",
+          "action": {
+            "type": "text",
+            "text": "Pulmo: Thorax symmetrisch, seitengleich belüftet. Vesikuläres Atemgeräusch beidseits, keine Rasselgeräusche, kein Giemen oder Brummen. Sonorer Klopfschall, Lungengrenzen gut atemverschieblich.",
+            "sample": true
+          }
+        },
+        {
+          "label": "Abdomen",
+          "icon": "v:abdomen",
+          "color": "#F5C542",
+          "action": {
+            "type": "text",
+            "text": "Abdomen: Bauchdecke weich, kein Druckschmerz, keine Abwehrspannung, keine Resistenzen. Darmgeräusche regelrecht über allen vier Quadranten. Leber und Milz nicht vergrößert tastbar, Nierenlager beidseits frei.",
+            "sample": true
+          }
+        },
+        {
+          "label": "HNO",
+          "icon": "v:ohr",
+          "color": "#5DD28B",
+          "action": {
+            "type": "text",
+            "text": "HNO: Rachen reizlos, Tonsillen nicht vergrößert, keine Beläge. Trommelfelle beidseits spiegelnd und intakt. Keine zervikalen Lymphknotenschwellungen.",
+            "sample": true
+          }
+        },
+        {
+          "label": "Neuro",
+          "icon": "v:gehirn",
+          "color": "#AC94FF",
+          "action": {
+            "type": "text",
+            "text": "Neuro: Pupillen isokor und prompt lichtreagibel, Hirnnerven grob unauffällig, kein Meningismus. Armvorhalteversuch unauffällig, Kraft und Sensibilität seitengleich intakt, Muskeleigenreflexe seitengleich auslösbar. Gangbild sicher, Finger-Nase-Versuch zielsicher.",
+            "sample": true
+          }
+        },
+        {
+          "label": "Haut",
+          "icon": "v:hand",
+          "color": "#FF8A3D",
+          "action": {
+            "type": "text",
+            "text": "Haut: Rosig, normal temperiert, Turgor unauffällig. Keine Effloreszenzen, keine Zyanose, kein Ikterus. Schleimhäute feucht und reizlos.",
+            "sample": true
+          }
+        },
+        {
+          "label": "Bewegung",
+          "icon": "v:knie",
+          "color": "#45CFC6",
+          "action": {
+            "type": "text",
+            "text": "Bewegungsapparat: Wirbelsäule klopf- und stauchungsschmerzfrei, kein Muskelhartspann, Beweglichkeit altersentsprechend frei. Große Gelenke reizlos und frei beweglich, kein Erguss. Gangbild unauffällig.",
+            "sample": true
+          }
+        },
+        {
+          "label": "Gefäße",
+          "icon": "v:puls",
+          "color": "#FF7B7B",
+          "action": {
+            "type": "text",
+            "text": "Gefäße: Pulse peripher beidseits gut tastbar, Halsgefäße ohne Strömungsgeräusch. Keine Beinödeme, keine auffällige Varikose, Wadenkompression schmerzfrei. Rekapillarisierungszeit unter 2 Sekunden.",
+            "sample": true
+          }
+        },
+        {
+          "label": "Hals",
+          "icon": "v:schilddruese",
+          "color": "#5DD28B",
+          "action": {
+            "type": "text",
+            "text": "Hals: Schilddrüse nicht vergrößert, schluckverschieblich, keine Knoten tastbar. Zervikale, axilläre und inguinale Lymphknoten nicht vergrößert. Halsvenen nicht gestaut.",
+            "sample": true
+          }
+        }
+      ]
+    }
+  ]
+}

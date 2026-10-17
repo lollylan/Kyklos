@@ -9,11 +9,32 @@
                        "programm":  "Überall"
                    },
                    {
+                       "datei":  "internet.kyklos.json",
+                       "name":  "Internet",
+                       "autor":  "Kyklos",
+                       "beschreibung":  "Schnellzugriff auf Asklaion, Google, KVB, Bayerischen Hausärzteverband und Hausarzt digital im Standardbrowser.",
+                       "programm":  "Überall"
+                   },
+                   {
                        "datei":  "medien.kyklos.json",
                        "name":  "Medien",
                        "autor":  "Kyklos",
                        "beschreibung":  "Wiedergabe, Titelwechsel und Lautstärke ohne Umweg über die Tastatur.",
                        "programm":  "Überall"
+                   },
+                   {
+                       "datei":  "normbefunde.kyklos.json",
+                       "name":  "Normbefunde",
+                       "autor":  "Kyklos",
+                       "beschreibung":  "Zehn Normalbefunde der Untersuchung als Textbausteine. Beispieltexte, bitte vor Gebrauch prüfen.",
+                       "programm":  "Praxisverwaltungssystem"
+                   },
+                   {
+                       "datei":  "windows.kyklos.json",
+                       "name":  "Windows",
+                       "autor":  "Kyklos",
+                       "beschreibung":  "Explorer, Einstellungen, Task-Manager, Ausschnitt, Text erkennen, Fenster nebeneinander legen und PC sperren.",
+                       "programm":  "Windows"
                    }
                ]
 }

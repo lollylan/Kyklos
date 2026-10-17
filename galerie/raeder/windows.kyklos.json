@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "galerie": {
+    "autor": "Kyklos",
+    "beschreibung": "Explorer, Einstellungen, Task-Manager, Ausschnitt, Text erkennen, Fenster nebeneinander legen und PC sperren.",
+    "programm": "Windows"
+  },
+  "wheels": [
+    {
+      "id": "windows1",
+      "name": "Windows",
+      "slots": [
+        {
+          "label": "Explorer",
+          "icon": "v:ordner",
+          "color": "#F5C542",
+          "action": {
+            "type": "keys",
+            "keys": {
+              "code": 69,
+              "win": true
+            }
+          }
+        },
+        {
+          "label": "Einstellungen",
+          "icon": "v:werkzeug",
+          "color": "#E8EAED",
+          "action": {
+            "type": "keys",
+            "keys": {
+              "code": 73,
+              "win": true
+            }
+          }
+        },
+        {
+          "label": "Task-Manager",
+          "icon": "v:messen",
+          "color": "#FF7B7B",
+          "action": {
+            "type": "keys",
+            "keys": {
+              "code": 27,
+              "ctrl": true,
+              "shift": true
+            }
+          }
+        },
+        {
+          "label": "Ausschnitt",
+          "icon": "v:ausschnitt",
+          "color": "#5DD28B",
+          "action": {
+            "type": "media",
+            "media": "snip"
+          }
+        },
+        {
+          "label": "Text erkennen",
+          "icon": "v:texterkennung",
+          "color": "#45CFC6",
+          "action": {
+            "type": "media",
+            "media": "ocr"
+          }
+        },
+        {
+          "label": "Desktop",
+          "color": "#62ABFF",
+          "action": {
+            "type": "media",
+            "media": "desktop"
+          }
+        },
+        {
+          "label": "Fenster links",
+          "color": "#AC94FF",
+          "action": {
+            "type": "keys",
+            "keys": {
+              "code": 37,
+              "win": true
+            }
+          }
+        },
+        {
+          "label": "Maximieren",
+          "color": "#AC94FF",
+          "action": {
+            "type": "keys",
+            "keys": {
+              "code": 38,
+              "win": true
+            }
+          }
+        },
+        {
+          "label": "Fenster rechts",
+          "color": "#AC94FF",
+          "action": {
+            "type": "keys",
+            "keys": {
+              "code": 39,
+              "win": true
+            }
+          }
+        },
+        {
+          "label": "PC sperren",
+          "icon": "v:schloss",
+          "color": "#FF7B7B",
+          "action": {
+            "type": "media",
+            "media": "lock"
+          }
+        }
+      ]
+    }
+  ]
+}

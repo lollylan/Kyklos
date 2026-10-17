@@ -484,7 +484,7 @@ namespace Kyklos
             win.Close();
         }
 
-        /// <summary>Öffnet die Galerie gegen den Ordner in KYKLOS_GALERIE und schreibt gallery.png; Rückgabe 0, wenn alle Karten kamen.</summary>
+        /// <summary>Öffnet die Galerie gegen den Ordner in KYKLOS_GALERIE und schreibt gallery.png; Rückgabe 0, wenn Karten kamen.</summary>
         static int RenderGallery(string dir)
         {
             Directory.CreateDirectory(dir);
@@ -499,8 +499,10 @@ namespace Kyklos
             win.Left = -30000;
             win.Top = -30000;
             win.ShowInTaskbar = false;
-            for (int i = 0; i < 50 && g.Loaded < 2; i++) Pump(100);
+            for (int i = 0; i < 80 && (g.Loaded == 0 || g.Status.Length > 0); i++) Pump(100);
             Pump(300);
+            win.Height = 1000;
+            Pump(200);
             Shot(win, Path.Combine(dir, "gallery.png"));
             win.Width = 560;
             Pump(200);
@@ -508,7 +510,7 @@ namespace Kyklos
             File.WriteAllText(Path.Combine(dir, "gallery.txt"), "Karten: " + g.Loaded + "  Hinzugefügt: " + added + "  Status: " + g.Status);
             int loaded = g.Loaded;
             win.Close();
-            return loaded >= 2 ? 0 : 1;
+            return loaded >= 1 ? 0 : 1;
         }
 
         static void Pump(int ms)

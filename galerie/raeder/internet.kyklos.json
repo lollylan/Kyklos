@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "galerie": {
+    "autor": "Kyklos",
+    "beschreibung": "Schnellzugriff auf Asklaion, Google, KVB, Bayerischen Hausärzteverband und Hausarzt digital im Standardbrowser.",
+    "programm": "Überall"
+  },
+  "wheels": [
+    {
+      "id": "internet1",
+      "name": "Internet",
+      "slots": [
+        {
+          "label": "Asklaion",
+          "icon": "v:suche",
+          "color": "#45CFC6",
+          "action": {
+            "type": "url",
+            "url": "https://www.asklaion.de"
+          }
+        },
+        {
+          "label": "Google",
+          "icon": "v:globus",
+          "color": "#62ABFF",
+          "action": {
+            "type": "url",
+            "url": "https://www.google.de"
+          }
+        },
+        {
+          "label": "KVB",
+          "icon": "v:dokument",
+          "color": "#5DD28B",
+          "action": {
+            "type": "url",
+            "url": "https://www.kvb.de"
+          }
+        },
+        {
+          "label": "BHÄV",
+          "icon": "v:krankenhaus",
+          "color": "#FF8A3D",
+          "action": {
+            "type": "url",
+            "url": "https://www.hausaerzte-bayern.de"
+          }
+        },
+        {
+          "label": "Hausarzt digital",
+          "icon": "v:blitz",
+          "color": "#AC94FF",
+          "action": {
+            "type": "url",
+            "url": "https://www.hausarzt.digital"
+          }
+        }
+      ]
+    }
+  ]
+}
