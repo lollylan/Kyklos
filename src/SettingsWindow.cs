@@ -45,7 +45,7 @@ namespace Kyklos
         readonly ScrollViewer GeneralPanel;
         readonly Button AddWheel, ImportWheel, OnlineWheel, CloneWheel, ExportWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
                         KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn, GapPickBtn,
-                        VariantBtn, AlternBtn;
+                        VariantBtn, AlternBtn, FolderFromFile, FolderFromWeb;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
         readonly ComboBox TypeBox, TextModeBox, MediaBox, AddStepBox;
         readonly StackPanel TriggerGroup, Trigger2Group, ScopeHost, Crumbs, Swatches, PText, PKeys, POpen, PUrl, PMedia, PMacro, PFolder, StepsHost, IconHost;
@@ -101,6 +101,7 @@ namespace Kyklos
             ImportBtn = F<Button>("ImportBtn"); QuitBtn = F<Button>("QuitBtn");
             GapFieldBtn = F<Button>("GapFieldBtn"); GapChoiceBtn = F<Button>("GapChoiceBtn"); GapPickBtn = F<Button>("GapPickBtn");
             VariantBtn = F<Button>("VariantBtn"); AlternBtn = F<Button>("AlternBtn");
+            FolderFromFile = F<Button>("FolderFromFile"); FolderFromWeb = F<Button>("FolderFromWeb");
             WheelName = F<TextBox>("WheelName"); LabelBox = F<TextBox>("LabelBox"); TextBody = F<TextBox>("TextBody");
             PathBox = F<TextBox>("PathBox"); ArgsBox = F<TextBox>("ArgsBox"); UrlBox = F<TextBox>("UrlBox");
             StepDelayBox = F<TextBox>("StepDelayBox"); DelayBox = F<TextBox>("DelayBox");
@@ -485,6 +486,13 @@ namespace Kyklos
                 Touch();
             };
             OpenFolderBtn.Click += (s, e) => EnterFolder(Cur);
+            FolderFromFile.Click += (s, e) => { CancelRecord(); FillFolderFromFile(Cur); };
+            FolderFromWeb.Click += (s, e) =>
+            {
+                CancelRecord();
+                var target = Cur;
+                Gallery.Show(_w, Skin.Get(Cfg.Settings.Skin), w => FillFolder(target, w), "Einsetzen", "Eingesetzt", true);
+            };
 
             TestBtn.Click += async (s, e) =>
             {
@@ -959,6 +967,59 @@ namespace Kyklos
             _sel = 0;
             LoadStage();
             LoadInspector();
+        }
+
+        void FillFolderFromFile(Slot folder)
+        {
+            var dlg = new OpenFileDialog { Title = "Rad in Unterrad einsetzen", Filter = "Kyklos-Datei|*.json|Alle Dateien|*.*" };
+            if (dlg.ShowDialog(_w) != true) return;
+            List<Wheel> wheels;
+            try
+            {
+                wheels = Config.FromJson(Json.Parse(File.ReadAllText(dlg.FileName, Encoding.UTF8)) as Dictionary<string, object>).Wheels;
+                if (wheels.Count == 0) throw new FormatException("Die Datei enthält keine Räder.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(_w, "Die Datei ist keine gültige Kyklos-Datei:\n\n" + ex.Message, "Kyklos", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            FillFolder(folder, wheels);
+        }
+
+        /// <summary>
+        /// Setzt die Segmente des ersten Rads als Inhalt des Unterrads ein (Kopie). Auslöser und Programmzuordnung des Rads
+        /// entfallen. Liefert die Zahl der eingesetzten Segmente, 0 bei Abbruch.
+        /// </summary>
+        int FillFolder(Slot folder, List<Wheel> wheels)
+        {
+            if (folder == null || folder.Action.Type != ActionType.Folder || !CurrentSlots.Contains(folder))
+            {
+                MessageBox.Show(_w, "Das Unterrad-Segment ist nicht mehr gewählt. Wähle es aus und versuche es noch einmal.", "Kyklos", MessageBoxButton.OK, MessageBoxImage.Information);
+                return 0;
+            }
+            var src = wheels[0];
+            var slots = src.Slots.Where(s => !s.IsEmpty).ToList();
+            if (slots.Count > Wheel.MaxSlots)
+            {
+                MessageBox.Show(_w, "Das Rad „" + src.Name + "“ hat " + slots.Count + " Segmente, ein Unterrad fasst höchstens " + Wheel.MaxSlots + ".",
+                                "Kyklos", MessageBoxButton.OK, MessageBoxImage.Information);
+                return 0;
+            }
+            if (folder.Action.Slots.Any(s => !s.IsEmpty) &&
+                MessageBox.Show(_w, "Der bisherige Inhalt dieses Unterrads wird durch die Segmente von „" + src.Name + "“ ersetzt.",
+                                "Rad einsetzen", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) != MessageBoxResult.OK)
+                return 0;
+            folder.Action.Slots = slots;
+            Wheel.Normalize(folder.Action.Slots);
+            if (string.IsNullOrWhiteSpace(folder.Label)) folder.Label = src.Name;
+            LoadStage();
+            LoadInspector();
+            Touch();
+            if (wheels.Count > 1)
+                MessageBox.Show(_w, "Die Datei enthält " + wheels.Count + " Räder. Eingesetzt wurde das erste: „" + src.Name + "“.",
+                                "Rad einsetzen", MessageBoxButton.OK, MessageBoxImage.Information);
+            return slots.Count;
         }
 
         void LeaveTo(int level)

@@ -261,6 +261,15 @@
                 <Button x:Name="OpenFolderBtn" Style="{StaticResource Btn}" Content="Unterrad bearbeiten" HorizontalAlignment="Left"/>
                 <TextBlock Style="{StaticResource Help}"
                            Text="Das Unterrad öffnet sich, wenn du über den Außenrand dieser Taste hinausfährst oder kurz auf ihr verweilst."/>
+                <TextBlock Text="Fertiges Rad einsetzen" Style="{StaticResource GroupLabel}" Margin="0,16,0,6"/>
+                <StackPanel Orientation="Horizontal">
+                  <Button x:Name="FolderFromFile" Style="{StaticResource Btn}" Content="Aus Datei …" Margin="0,0,8,0"
+                          ToolTip="Setzt die Segmente eines Rads aus einer Kyklos-Datei in dieses Unterrad ein."/>
+                  <Button x:Name="FolderFromWeb" Style="{StaticResource Btn}" Content="Aus dem Internet …"
+                          ToolTip="Setzt die Segmente eines Rads aus der Galerie in dieses Unterrad ein."/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Help}"
+                           Text="Das Unterrad enthält danach eine Kopie. Auslöser und Programmzuordnung des Rads entfallen."/>
               </StackPanel>
             </StackPanel>
           </ScrollViewer>

@@ -46,14 +46,21 @@ namespace Kyklos
         TextBlock _status;
         TextBox _search;
         bool _closed;
+        readonly string _addText, _doneText;
+        readonly bool _closeAfter;
 
         static Gallery _open;
 
         /// <summary>Öffnet die Galerie – oder holt die schon offene nach vorn. <paramref name="add"/> hängt Räder an und liefert, wie viele.</summary>
-        public static Gallery Show(Window owner, Skin skin, Func<List<Wheel>, int> add)
+        public static Gallery Show(Window owner, Skin skin, Func<List<Wheel>, int> add,
+                                   string addText = "Hinzufügen", string doneText = "Hinzugefügt", bool closeAfter = false)
         {
-            if (_open != null) { _open._w.Activate(); return _open; }
-            _open = new Gallery(owner, skin, add);
+            if (_open != null)
+            {
+                if (_open._addText == addText) { _open._w.Activate(); return _open; }
+                _open._w.Close();   // andere Aufgabe (hinzufügen oder einsetzen): neu öffnen
+            }
+            _open = new Gallery(owner, skin, add, addText, doneText, closeAfter);
             _open._w.Show();
             _open.Load();
             return _open;
@@ -63,9 +70,10 @@ namespace Kyklos
         public int Loaded { get { return _entries.Count(x => x.Card != null); } }
         public string Status { get { return _status.Text; } }
 
-        Gallery(Window owner, Skin skin, Func<List<Wheel>, int> add)
+        Gallery(Window owner, Skin skin, Func<List<Wheel>, int> add, string addText, string doneText, bool closeAfter)
         {
             _add = add;
+            _addText = addText; _doneText = doneText; _closeAfter = closeAfter;
             _skin = skin != null && skin.Decor != Decor.Frost ? skin : Skin.Graphit;   // Milchglas braucht den Bildschirm dahinter
             string b = Environment.GetEnvironmentVariable("KYKLOS_GALERIE");
             if (string.IsNullOrWhiteSpace(b)) b = DefaultBase;
@@ -80,7 +88,7 @@ namespace Kyklos
                 Icon = owner == null ? null : owner.Icon
             };
             TextOptions.SetTextFormattingMode(_w, TextFormattingMode.Display);
-            _w.Closed += (s, e) => { _closed = true; _open = null; };
+            _w.Closed += (s, e) => { _closed = true; if (_open == this) _open = null; };
 
             var root = new Grid();
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -304,7 +312,7 @@ namespace Kyklos
             col.Children.Add(new TextBlock { Text = en.Description, Style = style, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, Height = 56, Margin = new Thickness(0, 6, 0, 0), ToolTip = en.Description });
             var note = new TextBlock { Text = en.Summary, Style = style, Margin = new Thickness(0, 8, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
             col.Children.Add(note);
-            var btn = new Button { Content = "Hinzufügen", Style = (Style)Application.Current.FindResource("BtnPrimary"), Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
+            var btn = new Button { Content = _addText, Style = (Style)Application.Current.FindResource("BtnPrimary"), Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
             btn.Click += (s, e) => Add(en);
             col.Children.Add(btn);
 
@@ -337,9 +345,10 @@ namespace Kyklos
                 sb.Append("\nNur hinzufügen, wenn du das nachvollziehen kannst und der Quelle traust.");
                 if (MessageBox.Show(_w, sb.ToString(), "Rad hinzufügen", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) != MessageBoxResult.OK) return;
             }
-            _add(wheels);
-            en.AddBtn.Content = "Hinzugefügt";
+            if (_add(wheels) <= 0) return;   // abgebrochen oder abgelehnt
+            en.AddBtn.Content = _doneText;
             en.AddBtn.IsEnabled = false;
+            if (_closeAfter) _w.Close();
         }
 
         void Filter()
