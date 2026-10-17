@@ -43,7 +43,7 @@ namespace Kyklos
         readonly Button SampleKeep;
         readonly Grid EditorPanel;
         readonly ScrollViewer GeneralPanel;
-        readonly Button AddWheel, CloneWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
+        readonly Button AddWheel, ImportWheel, CloneWheel, ExportWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
                         KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn, GapPickBtn,
                         VariantBtn, AlternBtn;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
@@ -90,7 +90,8 @@ namespace Kyklos
             SlotTitle = F<TextBlock>("SlotTitle"); SlotPos = F<TextBlock>("SlotPos"); ScaleText = F<TextBlock>("ScaleText");
             ConfigPathText = F<TextBlock>("ConfigPathText"); VersionText = F<TextBlock>("VersionText");
             EditorPanel = F<Grid>("EditorPanel"); GeneralPanel = F<ScrollViewer>("GeneralPanel");
-            AddWheel = F<Button>("AddWheel"); CloneWheel = F<Button>("CloneWheel"); DeleteWheel = F<Button>("DeleteWheel"); TriggerBtn = F<Button>("TriggerBtn");
+            AddWheel = F<Button>("AddWheel"); ImportWheel = F<Button>("ImportWheel"); CloneWheel = F<Button>("CloneWheel");
+            ExportWheel = F<Button>("ExportWheel"); DeleteWheel = F<Button>("DeleteWheel"); TriggerBtn = F<Button>("TriggerBtn");
             AddTrigger2 = F<Button>("AddTrigger2"); Trigger2Btn = F<Button>("Trigger2Btn"); Trigger2Clear = F<Button>("Trigger2Clear");
             TriggerGroup = F<StackPanel>("TriggerGroup"); Trigger2Group = F<StackPanel>("Trigger2Group");
             AddSlot = F<Button>("AddSlot"); TestBtn = F<Button>("TestBtn"); RemoveSlot = F<Button>("RemoveSlot");
@@ -355,6 +356,20 @@ namespace Kyklos
                 Touch();
                 WheelName.Focus();
                 WheelName.SelectAll();
+            };
+            ExportWheel.Click += (s, e) => { CancelRecord(); ExportOne(); };
+            ImportWheel.Click += (s, e) => { CancelRecord(); ImportAdd(); };
+            var head = F<Grid>("WheelHead");
+            var actions = F<StackPanel>("WheelActions");
+            head.SizeChanged += (s, e) =>
+            {
+                // Unter 260 px Platz für den Namen rücken die Knöpfe in eine eigene Zeile, bündig mit dem Namen.
+                actions.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                bool narrow = e.NewSize.Width - actions.DesiredSize.Width < 260;
+                Grid.SetRow(actions, narrow ? 1 : 0);
+                Grid.SetColumn(actions, narrow ? 0 : 1);
+                actions.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+                actions.Margin = narrow ? new Thickness(-10, 4, 0, 0) : new Thickness(12, 0, 0, 0);
             };
             DeleteWheel.Click += (s, e) => Confirm(DeleteWheel, "Wirklich löschen?", () =>
             {
@@ -1511,6 +1526,70 @@ namespace Kyklos
             }
         }
 
+        /// <summary>Speichert nur das gewählte Rad – im selben Format wie der Gesamt-Export, nur ohne Einstellungen.</summary>
+        void ExportOne()
+        {
+            string name = (_wheel.Name ?? "").Trim();
+            foreach (char c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
+            if (name.Length == 0) name = "Rad";
+            var dlg = new SaveFileDialog { Title = "Rad exportieren", Filter = "Kyklos-Rad|*.json", FileName = name + ".kyklos.json" };
+            if (dlg.ShowDialog(_w) != true) return;
+            var d = new Dictionary<string, object>();
+            d["version"] = 1;
+            d["wheels"] = new List<object> { _wheel.ToJson() };
+            try { File.WriteAllText(dlg.FileName, Json.Write(d), new UTF8Encoding(false)); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(_w, "Der Export ist fehlgeschlagen:\n\n" + ex.Message, "Kyklos", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        /// <summary>
+        /// Hängt die Räder aus einer Datei an – aus einem Einzel- wie aus einem Gesamt-Export. Ein Auslöser, den im selben
+        /// Programm schon ein anderes Rad nutzt, wird geleert, damit nicht zwei Räder um dieselbe Taste konkurrieren.
+        /// </summary>
+        void ImportAdd()
+        {
+            var dlg = new OpenFileDialog { Title = "Rad importieren", Filter = "Kyklos-Datei|*.json|Alle Dateien|*.*" };
+            if (dlg.ShowDialog(_w) != true) return;
+            List<Wheel> wheels;
+            try
+            {
+                wheels = Config.FromJson(Json.Parse(File.ReadAllText(dlg.FileName, Encoding.UTF8)) as Dictionary<string, object>).Wheels;
+                if (wheels.Count == 0) throw new FormatException("Die Datei enthält keine Räder.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(_w, "Die Datei ist keine gültige Kyklos-Datei:\n\n" + ex.Message, "Kyklos",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var cleared = new List<string>();
+            foreach (var w in wheels)
+            {
+                w.Id = new Wheel().Id;
+                bool lost = false;
+                if (Clashes(w, w.Trigger)) { w.Trigger = new Chord(); lost = true; }
+                if (Clashes(w, w.Trigger2)) { w.Trigger2 = new Chord(); lost = true; }
+                if (w.Trigger.IsEmpty && !w.Trigger2.IsEmpty) { w.Trigger = w.Trigger2; w.Trigger2 = new Chord(); }
+                if (lost) cleared.Add("„" + w.Name + "“");
+                Cfg.Wheels.Add(w);
+            }
+            RebuildWheelList();
+            ShowEditor();
+            SelectWheel(wheels[0]);
+            Touch();
+            if (cleared.Count > 0)
+                MessageBox.Show(_w, (cleared.Count == 1 ? "Beim Rad " + cleared[0] + " wurde" : "Bei den Rädern " + string.Join(", ", cleared) + " wurde") +
+                                " der Auslöser entfernt, weil ein vorhandenes Rad dieselbe Taste nutzt.\n\nLege dafür eine eigene Taste fest.",
+                                "Rad importieren", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        bool Clashes(Wheel w, Chord t)
+        {
+            return !t.IsEmpty && Cfg.Wheels.Any(o => o != w && o.SameScope(w) && o.Triggers.Any(x => x.SameAs(t)));
+        }
+
         void Import()
         {
             var dlg = new OpenFileDialog { Title = "Konfiguration importieren", Filter = "Kyklos-Konfiguration|*.json|Alle Dateien|*.*" };
@@ -1518,8 +1597,11 @@ namespace Kyklos
             Config cfg;
             try
             {
-                cfg = Config.FromJson(Json.Parse(File.ReadAllText(dlg.FileName, Encoding.UTF8)) as Dictionary<string, object>);
+                var d = Json.Parse(File.ReadAllText(dlg.FileName, Encoding.UTF8)) as Dictionary<string, object>;
+                cfg = Config.FromJson(d);
                 if (cfg.Wheels.Count == 0) throw new FormatException("Die Datei enthält keine Räder.");
+                // Ein Einzelrad-Export bringt keine Einstellungen mit – dann bleiben die bisherigen.
+                if (d == null || !d.ContainsKey("settings")) cfg.Settings = Cfg.Settings;
             }
             catch (Exception ex)
             {

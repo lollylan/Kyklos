@@ -29,6 +29,13 @@
                 <TextBlock Text="Rad hinzufügen"/>
               </StackPanel>
             </Button>
+            <Button x:Name="ImportWheel" Style="{StaticResource BtnGhost}" HorizontalContentAlignment="Left"
+                    ToolTip="Fügt die Räder aus einer Kyklos-Datei hinzu. Die vorhandenen Räder bleiben erhalten.">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE8B5;" Style="{StaticResource Glyph}" FontSize="12" Margin="1,1,9,0"/>
+                <TextBlock Text="Rad importieren …"/>
+              </StackPanel>
+            </Button>
           </StackPanel>
         </ScrollViewer>
         <StackPanel Grid.Row="2">
@@ -58,14 +65,25 @@
         </Grid.RowDefinitions>
 
         <StackPanel Margin="32,22,28,0">
-          <DockPanel>
-            <Button x:Name="DeleteWheel" DockPanel.Dock="Right" Style="{StaticResource BtnGhost}" Content="Rad löschen"
-                    VerticalAlignment="Center" Margin="4,0,0,0"/>
-            <Button x:Name="CloneWheel" DockPanel.Dock="Right" Style="{StaticResource BtnGhost}" Content="Rad duplizieren"
-                    VerticalAlignment="Center" Margin="12,0,0,0"
-                    ToolTip="Legt eine Kopie mit allen Segmenten an – ohne Auslöser, damit sie eine eigene Taste bekommt."/>
+          <!-- Ist zu wenig Platz für den Namen, rücken die Knöpfe im Code unter ihn. -->
+          <Grid x:Name="WheelHead">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             <TextBox x:Name="WheelName" Style="{StaticResource TitleBox}" Tag="Name des Rads" MaxLength="40"/>
-          </DockPanel>
+            <StackPanel x:Name="WheelActions" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+              <Button x:Name="ExportWheel" Style="{StaticResource BtnGhost}" Content="Exportieren …"
+                      ToolTip="Speichert nur dieses Rad als Datei – zum Weitergeben oder Sichern."/>
+              <Button x:Name="CloneWheel" Style="{StaticResource BtnGhost}" Content="Rad duplizieren" Margin="4,0,0,0"
+                      ToolTip="Legt eine Kopie mit allen Segmenten an – ohne Auslöser, damit sie eine eigene Taste bekommt."/>
+              <Button x:Name="DeleteWheel" Style="{StaticResource BtnGhost}" Content="Rad löschen" Margin="4,0,0,0"/>
+            </StackPanel>
+          </Grid>
           <!-- Bricht bei schmalem Fenster in zwei Zeilen um. -->
           <WrapPanel Margin="0,12,0,0">
             <StackPanel x:Name="TriggerGroup" Orientation="Horizontal" Margin="0,0,0,8">
