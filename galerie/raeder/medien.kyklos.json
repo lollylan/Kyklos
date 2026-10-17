@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "galerie": { "autor": "Kyklos", "beschreibung": "Wiedergabe, Titelwechsel und Lautstärke ohne Umweg über die Tastatur.", "programm": "Überall" },
+  "wheels": [
+    {
+      "id": "medien01",
+      "name": "Medien",
+      "slots": [
+        { "label": "Wiedergabe", "color": "#4C9AFF", "action": { "type": "media", "media": "playpause" } },
+        { "label": "Nächster Titel", "color": "#4C9AFF", "action": { "type": "media", "media": "next" } },
+        { "label": "Lauter", "color": "#4C9AFF", "action": { "type": "media", "media": "volup" } },
+        { "label": "Ton aus", "color": "#4C9AFF", "action": { "type": "media", "media": "mute" } },
+        { "label": "Leiser", "color": "#4C9AFF", "action": { "type": "media", "media": "voldown" } },
+        { "label": "Vorheriger Titel", "color": "#4C9AFF", "action": { "type": "media", "media": "prev" } }
+      ]
+    }
+  ]
+}

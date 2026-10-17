@@ -178,6 +178,20 @@ Einrichten:
 
 Das Bild geht über eine Pipe an Tesseract, nicht über eine Datei; nichts davon landet auf der Festplatte.
 
+## Räder aus dem Internet
+
+*Räder aus dem Internet …* in der Seitenleiste öffnet die Galerie: Räder anderer Anwender mit Vorschau, Suche und einem
+Klick zum Hinzufügen. Sie liegen im Ordner `galerie/` dieses Repos (`galerie/raeder/*.kyklos.json`, Liste in
+`galerie/index.json`) und werden beim Öffnen von GitHub geladen.
+
+Fremde Räder können Programme starten, Websites öffnen und Makros ausführen. Kyklos liest das aus dem Rad selbst
+(nicht aus der Liste) und zeigt es vor dem Hinzufügen im Klartext. Räder nur mit Text, Tasten und Medien kommen ohne
+Rückfrage.
+
+Ein Rad beisteuern: im Rad-Kopf *Exportieren …*, der Datei einen Block `"galerie": { "autor", "beschreibung", "programm" }`
+voranstellen, nach `galerie/raeder/` legen und `tools\galerie-index.ps1` ausführen (erzeugt `index.json`). Zum Ausprobieren
+vor dem Veröffentlichen die Umgebungsvariable `KYKLOS_GALERIE` auf einen lokalen Ordner setzen.
+
 ## Dateien
 
 | Datei | Zweck |
@@ -237,6 +251,7 @@ fehlt es, erzeugt es der Build.
 | `src\Model.cs`, `src\ConfigStore.cs`, `src\Json.cs` | Datenmodell, Laden/Speichern, Beispiel-Räder |
 | `src\Dev.cs` | `--dev-render <ordner>` rendert Rad und Einstellungen als PNG zur Sichtprüfung, `--dev-icon <datei>` das Symbol, `--dev-ocr <bild>` erkennt den Text eines Bilds nach `<bild>.txt` |
 | `tools\e2e.ps1` | Funktionstest mit echten Eingaben: startet die Exe mit einer Testkonfiguration, hält die Auslösetaste, bewegt die Maus und prüft, was im Testfenster ankommt (bewegt ca. 15 s lang den Mauszeiger) |
+| `tools\galerie-index.ps1` | Erzeugt `galerie\index.json` aus den Rad-Dateien in `galerie\raeder` |
 | `tools\import-icons.mjs` | Übernimmt weitere Liniensymbole aus Tabler oder Lucide, z. B. `node tools/import-icons.mjs tabler:bone=knochen`, und gibt die Einträge für `Icons.cs` aus |
 
 ## Lizenz

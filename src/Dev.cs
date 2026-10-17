@@ -25,6 +25,7 @@ namespace Kyklos
             if (args.Length < 2) return 2;
             if (args[0] == "--dev-icon") { MakeIcon(args[1]); return 0; }
             if (args[0] == "--dev-render") { Render(args[1]); return 0; }
+            if (args[0] == "--dev-gallery") return RenderGallery(args[1]);
             if (args[0] == "--dev-savetest") return SaveTest(args[1]);
             if (args[0] == "--dev-ocr") return OcrFiles(args);
             if (args[0] == "--dev-focus")
@@ -481,6 +482,33 @@ namespace Kyklos
             sw.DevSelectWheel(0);
             Shot(win, Path.Combine(dir, "settings-scope-general.png"));
             win.Close();
+        }
+
+        /// <summary>Öffnet die Galerie gegen den Ordner in KYKLOS_GALERIE und schreibt gallery.png; Rückgabe 0, wenn alle Karten kamen.</summary>
+        static int RenderGallery(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            Theme.Apply(app);
+            // Ohne laufende Anwendungsschleife fehlt der Kontext, in den await zurückkehrt.
+            System.Threading.SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+            int added = 0;
+            var g = Gallery.Show(null, Skin.Graphit, w => { added += w.Count; return w.Count; });
+            var win = g.Window;
+            win.WindowStartupLocation = WindowStartupLocation.Manual;
+            win.Left = -30000;
+            win.Top = -30000;
+            win.ShowInTaskbar = false;
+            for (int i = 0; i < 50 && g.Loaded < 2; i++) Pump(100);
+            Pump(300);
+            Shot(win, Path.Combine(dir, "gallery.png"));
+            win.Width = 560;
+            Pump(200);
+            Shot(win, Path.Combine(dir, "gallery-narrow.png"));
+            File.WriteAllText(Path.Combine(dir, "gallery.txt"), "Karten: " + g.Loaded + "  Hinzugefügt: " + added + "  Status: " + g.Status);
+            int loaded = g.Loaded;
+            win.Close();
+            return loaded >= 2 ? 0 : 1;
         }
 
         static void Pump(int ms)

@@ -1,0 +1,19 @@
+{
+    "version":  1,
+    "raeder":  [
+                   {
+                       "datei":  "bearbeiten-kurz.kyklos.json",
+                       "name":  "Bearbeiten",
+                       "autor":  "Kyklos",
+                       "beschreibung":  "Kopieren, Einfügen, Rückgängig und Speichern auf einen Blick. Gilt in jedem Programm.",
+                       "programm":  "Überall"
+                   },
+                   {
+                       "datei":  "medien.kyklos.json",
+                       "name":  "Medien",
+                       "autor":  "Kyklos",
+                       "beschreibung":  "Wiedergabe, Titelwechsel und Lautstärke ohne Umweg über die Tastatur.",
+                       "programm":  "Überall"
+                   }
+               ]
+}

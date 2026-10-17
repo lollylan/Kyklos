@@ -36,6 +36,13 @@
                 <TextBlock Text="Rad importieren …"/>
               </StackPanel>
             </Button>
+            <Button x:Name="OnlineWheel" Style="{StaticResource BtnGhost}" HorizontalContentAlignment="Left"
+                    ToolTip="Zeigt Räder anderer Anwender aus dem Internet, die sich mit einem Klick hinzufügen lassen.">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE774;" Style="{StaticResource Glyph}" FontSize="12" Margin="1,1,9,0"/>
+                <TextBlock Text="Räder aus dem Internet …"/>
+              </StackPanel>
+            </Button>
           </StackPanel>
         </ScrollViewer>
         <StackPanel Grid.Row="2">

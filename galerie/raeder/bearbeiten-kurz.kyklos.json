@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "galerie": { "autor": "Kyklos", "beschreibung": "Kopieren, Einfügen, Rückgängig und Speichern auf einen Blick. Gilt in jedem Programm.", "programm": "Überall" },
+  "wheels": [
+    {
+      "id": "bearb01",
+      "name": "Bearbeiten",
+      "slots": [
+        { "label": "Kopieren", "color": "#FF8A3D", "action": { "type": "keys", "keys": { "code": 67, "ctrl": true } } },
+        { "label": "Einfügen", "color": "#FF8A3D", "action": { "type": "keys", "keys": { "code": 86, "ctrl": true } } },
+        { "label": "Ausschneiden", "color": "#FF8A3D", "action": { "type": "keys", "keys": { "code": 88, "ctrl": true } } },
+        { "label": "Rückgängig", "color": "#FF8A3D", "action": { "type": "keys", "keys": { "code": 90, "ctrl": true } } },
+        { "label": "Alles markieren", "color": "#FF8A3D", "action": { "type": "keys", "keys": { "code": 65, "ctrl": true } } },
+        { "label": "Speichern", "color": "#FF8A3D", "action": { "type": "keys", "keys": { "code": 83, "ctrl": true } } }
+      ]
+    }
+  ]
+}

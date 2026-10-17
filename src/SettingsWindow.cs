@@ -43,7 +43,7 @@ namespace Kyklos
         readonly Button SampleKeep;
         readonly Grid EditorPanel;
         readonly ScrollViewer GeneralPanel;
-        readonly Button AddWheel, ImportWheel, CloneWheel, ExportWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
+        readonly Button AddWheel, ImportWheel, OnlineWheel, CloneWheel, ExportWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
                         KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn, GapPickBtn,
                         VariantBtn, AlternBtn;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
@@ -90,7 +90,7 @@ namespace Kyklos
             SlotTitle = F<TextBlock>("SlotTitle"); SlotPos = F<TextBlock>("SlotPos"); ScaleText = F<TextBlock>("ScaleText");
             ConfigPathText = F<TextBlock>("ConfigPathText"); VersionText = F<TextBlock>("VersionText");
             EditorPanel = F<Grid>("EditorPanel"); GeneralPanel = F<ScrollViewer>("GeneralPanel");
-            AddWheel = F<Button>("AddWheel"); ImportWheel = F<Button>("ImportWheel"); CloneWheel = F<Button>("CloneWheel");
+            AddWheel = F<Button>("AddWheel"); ImportWheel = F<Button>("ImportWheel"); OnlineWheel = F<Button>("OnlineWheel"); CloneWheel = F<Button>("CloneWheel");
             ExportWheel = F<Button>("ExportWheel"); DeleteWheel = F<Button>("DeleteWheel"); TriggerBtn = F<Button>("TriggerBtn");
             AddTrigger2 = F<Button>("AddTrigger2"); Trigger2Btn = F<Button>("Trigger2Btn"); Trigger2Clear = F<Button>("Trigger2Clear");
             TriggerGroup = F<StackPanel>("TriggerGroup"); Trigger2Group = F<StackPanel>("Trigger2Group");
@@ -359,6 +359,7 @@ namespace Kyklos
             };
             ExportWheel.Click += (s, e) => { CancelRecord(); ExportOne(); };
             ImportWheel.Click += (s, e) => { CancelRecord(); ImportAdd(); };
+            OnlineWheel.Click += (s, e) => { CancelRecord(); Gallery.Show(_w, Skin.Get(Cfg.Settings.Skin), AddWheels); };
             var head = F<Grid>("WheelHead");
             var actions = F<StackPanel>("WheelActions");
             head.SizeChanged += (s, e) =>
@@ -1564,6 +1565,12 @@ namespace Kyklos
                                 MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+            AddWheels(wheels);
+        }
+
+        /// <summary>Hängt Räder an die vorhandenen an (neue Ids, Auslöser-Konflikte geleert) und wählt das erste. Liefert die Anzahl.</summary>
+        int AddWheels(List<Wheel> wheels)
+        {
             var cleared = new List<string>();
             foreach (var w in wheels)
             {
@@ -1583,6 +1590,7 @@ namespace Kyklos
                 MessageBox.Show(_w, (cleared.Count == 1 ? "Beim Rad " + cleared[0] + " wurde" : "Bei den Rädern " + string.Join(", ", cleared) + " wurde") +
                                 " der Auslöser entfernt, weil ein vorhandenes Rad dieselbe Taste nutzt.\n\nLege dafür eine eigene Taste fest.",
                                 "Rad importieren", MessageBoxButton.OK, MessageBoxImage.Information);
+            return wheels.Count;
         }
 
         bool Clashes(Wheel w, Chord t)
