@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 
 namespace Kyklos
 {
-    public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay, Click, Focus }
+    public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay, Click, Focus, Ai }
     public enum TextMode { Paste, Type }
 
     /// <summary>Taste oder Maustaste samt Zusatztasten – als Auslöser eines Rads oder als zu sendende Kombination.</summary>
@@ -86,6 +86,11 @@ namespace Kyklos
         public string Button = "left";
         public string Title = "";           // Teil des Fenstertitels (Fenster nach vorn holen)
         public bool Launch = true;          // Programm starten, wenn kein Fenster offen ist
+        // KI-Anweisung: die Anweisung selbst steht in Text.
+        public string Provider = "";        // Id des KI-Anbieters, leer: der Standard-Anbieter
+        public string AiSource = AiSources.Selection;
+        public string AiOutput = AiOutputs.Clipboard;
+        public bool LocalOnly;              // nie an einen externen Anbieter senden (Patientendaten)
         public List<Slot> Slots = new List<Slot>();
 
         public static readonly string[][] MediaNames =
@@ -126,6 +131,7 @@ namespace Kyklos
                 case ActionType.Delay: return "Pause";
                 case ActionType.Click: return "Mausklick";
                 case ActionType.Focus: return "Fenster nach vorn holen";
+                case ActionType.Ai: return "KI-Anweisung";
                 default: return "Keine Aktion";
             }
         }
@@ -159,6 +165,11 @@ namespace Kyklos
                     string who = string.IsNullOrWhiteSpace(Path) ? "" : FileName(Path.Trim().Trim('"'));
                     if (string.IsNullOrWhiteSpace(Title)) return who.Length > 0 ? "Fenster von " + who : "Noch kein Fenster gewählt";
                     return (who.Length > 0 ? who + " · " : "Fenster ") + "„" + Title.Trim() + "“";
+                case ActionType.Ai:
+                    string p = Regex.Replace(Text ?? "", @"\s+", " ").Trim();
+                    if (p.Length == 0) return "Noch keine Anweisung";
+                    p = "KI · " + p;
+                    return p.Length > 120 ? p.Substring(0, 118).TrimEnd() + " …" : p;
                 default: return "Keine Aktion";
             }
         }
@@ -203,6 +214,13 @@ namespace Kyklos
                     if (!string.IsNullOrEmpty(Title)) d["title"] = Title;
                     d["launch"] = Launch;
                     break;
+                case ActionType.Ai:
+                    d["text"] = Text ?? "";
+                    if (!string.IsNullOrEmpty(Provider)) d["provider"] = Provider;
+                    d["source"] = AiSource;
+                    d["output"] = AiOutput;
+                    if (LocalOnly) d["localOnly"] = true;
+                    break;
             }
             return d;
         }
@@ -229,6 +247,10 @@ namespace Kyklos
             a.Button = Json.S(d, "button", "left");
             a.Title = Json.S(d, "title");
             a.Launch = Json.B(d, "launch", true);
+            a.Provider = Json.S(d, "provider");
+            a.AiSource = Json.S(d, "source") == AiSources.Clipboard ? AiSources.Clipboard : AiSources.Selection;
+            a.AiOutput = Json.S(d, "output") == AiOutputs.Replace ? AiOutputs.Replace : AiOutputs.Clipboard;
+            a.LocalOnly = Json.B(d, "localOnly");
             foreach (var s in Json.A(d, "steps")) a.Steps.Add(FromJson(s as Dictionary<string, object>));
             foreach (var s in Json.A(d, "slots")) a.Slots.Add(Slot.FromJson(s as Dictionary<string, object>));
             return a;
@@ -506,6 +528,8 @@ namespace Kyklos
         public bool RestoreClipboard = true;
         public int PasteDelayMs = 350;
         public string Skin = Kyklos.Skin.DefaultId;
+        public List<AiProvider> Providers = new List<AiProvider>();
+        public string DefaultProvider = "";
 
         public Dictionary<string, object> ToJson()
         {
@@ -516,6 +540,9 @@ namespace Kyklos
             d["restoreClipboard"] = RestoreClipboard;
             d["pasteDelayMs"] = PasteDelayMs;
             d["skin"] = Skin;
+            // API-Schlüssel stehen nie hier, sondern verschlüsselt in einer eigenen Datei (siehe ApiKeys).
+            if (Providers.Count > 0) d["providers"] = Providers.Select(p => (object)p.ToJson()).ToList();
+            if (!string.IsNullOrEmpty(DefaultProvider)) d["defaultProvider"] = DefaultProvider;
             return d;
         }
 
@@ -529,6 +556,12 @@ namespace Kyklos
             s.PasteDelayMs = Math.Max(50, Math.Min(3000, Json.I(d, "pasteDelayMs", 350)));
             s.Skin = Json.S(d, "skin", Kyklos.Skin.DefaultId);
             if (!Kyklos.Skin.Exists(s.Skin)) s.Skin = Kyklos.Skin.DefaultId;
+            foreach (var p in Json.A(d, "providers"))
+            {
+                var pd = p as Dictionary<string, object>;
+                if (pd != null) s.Providers.Add(AiProvider.FromJson(pd));
+            }
+            s.DefaultProvider = Json.S(d, "defaultProvider");
             return s;
         }
     }

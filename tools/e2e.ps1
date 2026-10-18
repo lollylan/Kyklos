@@ -18,7 +18,9 @@ if (Test-Path (Join-Path $tessdata 'deu.traineddata')) { Copy-Item $tessdata $di
 $json = @'
 {
   "version": 1,
-  "settings": { "scale": 1, "tapSticky": true, "restoreCursor": true, "restoreClipboard": true, "pasteDelayMs": 300 },
+  "settings": { "scale": 1, "tapSticky": true, "restoreCursor": true, "restoreClipboard": true, "pasteDelayMs": 300,
+    "providers": [ { "id": "lokal", "kind": "ollama", "url": "", "model": "@MODEL@" }, { "id": "extern", "kind": "openai", "model": "gpt-4.1-mini" } ],
+    "defaultProvider": "lokal" },
   "wheels": [
     { "id": "test", "name": "Test", "trigger": { "code": 124 },
       "slots": [
@@ -46,10 +48,21 @@ $json = @'
     { "id": "nur", "name": "Nur Haupt", "trigger": { "code": 127 }, "apps": [ { "exe": "", "name": "Hauptfenster", "title": "Hauptfenster" } ],
       "slots": [ { "label": "Nur", "action": { "type": "text", "text": "NUR-HAUPT" } }, { "label": "Leer", "action": { "type": "none" } } ] },
     { "id": "exe", "name": "Per Exe", "trigger": { "code": 128 }, "apps": [ { "exe": "@EXE@", "name": "Testprogramm" } ],
-      "slots": [ { "label": "Exe", "action": { "type": "text", "text": "PER-EXE" } }, { "label": "Leer", "action": { "type": "none" } } ] }
+      "slots": [ { "label": "Exe", "action": { "type": "text", "text": "PER-EXE" } }, { "label": "Leer", "action": { "type": "none" } } ] },
+    { "id": "ki", "name": "KI", "trigger": { "code": 129 },
+      "slots": [
+        { "label": "Ersetzen", "action": { "type": "ai", "output": "replace", "text": "Schreibe den Text vollständig in Großbuchstaben. Ändere sonst nichts." } },
+        { "label": "Ablage", "action": { "type": "ai", "output": "clipboard", "text": "Schreibe den Text vollständig in Großbuchstaben. Ändere sonst nichts." } },
+        { "label": "Gesperrt", "action": { "type": "ai", "provider": "extern", "localOnly": true, "output": "replace", "text": "Fasse zusammen." } },
+        { "label": "Leer", "action": { "type": "none" } } ] }
   ]
 }
 '@
+# KI-Test: Ollama auf diesem PC mit einem kleinen Modell (KYKLOS_E2E_MODELL, sonst gemma3:4b). Fehlt es, entfaellt Abschnitt 9.
+$model = if ($env:KYKLOS_E2E_MODELL) { $env:KYKLOS_E2E_MODELL } else { 'gemma3:4b' }
+$ollama = $false
+try { $ollama = @((Invoke-RestMethod -TimeoutSec 3 'http://localhost:11434/api/tags').models | Where-Object { $_.name -eq $model }).Count -gt 0 } catch { }
+$json = $json.Replace('@MODEL@', $model)
 # Das Rad "Per Exe" gilt im Programm, das diesen Test ausfuehrt (powershell.exe oder pwsh.exe).
 $json = $json.Replace('@EXE@', (Get-Process -Id $PID).ProcessName + '.exe')
 [System.IO.File]::WriteAllText((Join-Path $dir 'Kyklos.json'), $json, (New-Object System.Text.UTF8Encoding($false)))
@@ -318,10 +331,56 @@ try {
   Tap 0x41; Wait 200
   Check 'Nur-hier-Taste bleibt anderswo normal' ((-not $opened) -and $script:keys2.Contains('F16')) ("Rad offen: $opened, Tasten im Feld: " + ($script:keys2 -join ','))
   $form2.Close()
+
+  # 9: KI-Anweisung (F18) gegen Ollama auf diesem PC - Markierung ersetzen, Ergebnis in die Zwischenablage, Sperre "Nur lokal"
+  if (-not $ollama) { [void]$results.Add("INFO    KI-Test entfaellt: Ollama mit $model laeuft nicht auf diesem PC") }
+  else {
+    $F18 = 0x81
+    $kiTitle = 'Kyklos ' + [char]0x2013 + ' KI'
+    function KiToast { $h = [U]::FindWindow([NullString]::Value, $kiTitle); return ($h -ne [IntPtr]::Zero) -and [U]::IsWindowVisible($h) }
+    function Until($ms, [scriptblock]$cond) { $end = (Get-Date).AddMilliseconds($ms); while ((Get-Date) -lt $end) { if (& $cond) { return $true }; Wait 100 }; return $false }
+    [void][U]::SetCursorPos($cx, $cy); Wait 80
+    [U]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); Wait 40; [U]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Wait 400
+    if ([U]::GetForegroundWindow() -ne $form.Handle) { throw 'Testfenster fuer den KI-Test nicht im Vordergrund.' }
+
+    [System.Windows.Forms.Clipboard]::SetText('VORHER-KI')
+    $tb.Text = 'hallo welt'; $tb.SelectAll(); Wait 150
+    Pick $F18 $tb
+    Check 'KI: Meldung waehrend der Anfrage' (KiToast) ''
+    $done = Until 60000 { $tb.Text.Trim() -ceq 'HALLO WELT' }
+    Shot 'e2e-6-ki-ersetzt'
+    Check 'KI: Markierung ersetzt' $done ("'" + $tb.Text + "'")
+    Wait 600
+    Check 'KI: Zwischenablage nach Ersetzen wiederhergestellt' ([System.Windows.Forms.Clipboard]::GetText() -eq 'VORHER-KI') ("'" + [System.Windows.Forms.Clipboard]::GetText() + "'")
+
+    $tb.Text = 'guten morgen'; $tb.SelectAll(); Wait 150
+    $tb.Select(0, $tb.Text.Length)
+    $m = $tb.PointToScreen((New-Object System.Drawing.Point ($tb.ClientSize.Width / 2), ($tb.ClientSize.Height / 2)))
+    [void][U]::SetCursorPos($m.X, $m.Y); Wait 100
+    KeyDown $F18; Wait 220; [void][U]::SetCursorPos($m.X + 130, $m.Y); Wait 200; KeyUp $F18
+    $done = Until 60000 { [System.Windows.Forms.Clipboard]::GetText().Trim() -ceq 'GUTEN MORGEN' }
+    Check 'KI: Ergebnis in der Zwischenablage' $done ("'" + [System.Windows.Forms.Clipboard]::GetText() + "'")
+    Check 'KI: Feld bleibt unveraendert' ($tb.Text -ceq 'guten morgen') ("'" + $tb.Text + "'")
+
+    Wait 1500
+    [System.Windows.Forms.Clipboard]::SetText('VORHER-KI')
+    $tb.Text = 'Befund vertraulich'; $tb.SelectAll(); Wait 150
+    [void][U]::SetCursorPos($m.X, $m.Y); Wait 100
+    KeyDown $F18; Wait 220; [void][U]::SetCursorPos($m.X, $m.Y + 130); Wait 200; KeyUp $F18; Wait 1200
+    Check 'KI: Nur lokal sperrt externen Anbieter' (($tb.Text -eq 'Befund vertraulich') -and (KiToast)) ("'" + $tb.Text + "'")
+    Check 'KI: gesperrt kopiert nichts' ([System.Windows.Forms.Clipboard]::GetText() -eq 'VORHER-KI') ("'" + [System.Windows.Forms.Clipboard]::GetText() + "'")
+
+    Wait 1500
+    $tb.Text = 'ohne markierung'; $tb.Select($tb.Text.Length, 0); Wait 150
+    Pick $F18 $tb
+    Wait 600
+    Check 'KI: ohne Markierung nichts geaendert' ($tb.Text -eq 'ohne markierung') ("'" + $tb.Text + "'")
+    Check 'KI: ohne Markierung Zwischenablage unveraendert' ([System.Windows.Forms.Clipboard]::GetText() -eq 'VORHER-KI') ("'" + [System.Windows.Forms.Clipboard]::GetText() + "'")
+  }
 }
 catch { [void]$results.Add('ABBRUCH  ' + $_.Exception.Message) }
 finally {
-  KeyUp $F13; KeyUp 0x7D; KeyUp 0x7E; KeyUp 0x7F; KeyUp 0x80
+  KeyUp $F13; KeyUp 0x7D; KeyUp 0x7E; KeyUp 0x7F; KeyUp 0x80; KeyUp 0x81
   $form.Close()
   [void][U]::SetCursorPos($orig.x, $orig.y)
   Start-Process (Join-Path $dir 'Kyklos.exe') -ArgumentList '--quit' -Wait

@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "galerie": {
+    "autor": "Kyklos",
+    "beschreibung": "Markierten Text per KI zusammenfassen, ausformulieren, korrigieren oder Untersuchungen, Diagnosen und Medikation aus Arztbriefen ziehen – auch aus einem Fax per Texterkennung. Braucht einen KI-Anbieter, am besten Ollama im Praxisnetz; die medizinischen Segmente laufen nur lokal.",
+    "programm": "Überall"
+  },
+  "wheels": [
+    {
+      "id": "ki01",
+      "name": "KI-Assistent",
+      "trigger": {
+        "code": 0
+      },
+      "slots": [
+        {
+          "label": "Zusammenfassen",
+          "icon": "v:ki",
+          "color": "#AC94FF",
+          "action": {
+            "type": "ai",
+            "text": "Fasse den Text knapp und sachlich zusammen. Höchstens fünf Sätze, die wichtigsten Aussagen zuerst.",
+            "source": "selection",
+            "output": "clipboard"
+          }
+        },
+        {
+          "label": "Ausführlicher",
+          "icon": "v:zauberstab",
+          "color": "#62ABFF",
+          "action": {
+            "type": "ai",
+            "text": "Formuliere den Text ausführlicher und in vollständigen Sätzen aus. Füge keine neuen Fakten hinzu.",
+            "source": "selection",
+            "output": "replace"
+          }
+        },
+        {
+          "label": "Korrigieren",
+          "icon": "v:stift",
+          "color": "#5DD28B",
+          "action": {
+            "type": "ai",
+            "text": "Korrigiere Rechtschreibung, Grammatik und Zeichensetzung. Ändere Inhalt und Stil nicht.",
+            "source": "selection",
+            "output": "replace"
+          }
+        },
+        {
+          "label": "Freundlicher",
+          "icon": "v:mail",
+          "color": "#F5C542",
+          "action": {
+            "type": "ai",
+            "text": "Formuliere den Text höflich und freundlich um, ohne den Inhalt zu ändern.",
+            "source": "selection",
+            "output": "replace"
+          }
+        },
+        {
+          "label": "Für Patienten",
+          "icon": "v:person",
+          "color": "#45CFC6",
+          "action": {
+            "type": "ai",
+            "text": "Erkläre den Text in einfacher, allgemeinverständlicher Sprache für Patientinnen und Patienten. Fachbegriffe übersetzen, kurze Sätze.",
+            "source": "selection",
+            "output": "clipboard",
+            "localOnly": true
+          }
+        },
+        {
+          "label": "Untersuchungen",
+          "icon": "v:arztbrief",
+          "color": "#FF8A3D",
+          "action": {
+            "type": "ai",
+            "text": "Du erhältst einen Arztbrief. Liste alle darin genannten apparativen Untersuchungen mit ihrem Befund auf, je Untersuchung eine Zeile nach dem Schema „Untersuchung: Befund“, zum Beispiel:\nEKG: …\nLabor: …\nRöntgen: …\nSono: …\nCT: …\nMRT: …\nEndoskopie: …\nGib nur Untersuchungen aus, die im Brief tatsächlich vorkommen; lass alle anderen weg. Übernimm Befunde wörtlich oder knapp sinngemäß, mit Datum, wenn angegeben. Keine Bewertung, keine Ergänzungen.",
+            "source": "selection",
+            "output": "clipboard",
+            "localOnly": true
+          }
+        },
+        {
+          "label": "Diagnosen",
+          "icon": "v:pille",
+          "color": "#FF7B7B",
+          "action": {
+            "type": "ai",
+            "text": "Du erhältst einen Arztbrief. Gib zuerst die Diagnosen aus (eine je Zeile, mit ICD-10-Code, falls genannt), dann eine Leerzeile und die Entlassmedikation (Wirkstoff, Stärke, Dosierschema, je Zeile ein Präparat). Nur was im Brief steht, nichts ergänzen.",
+            "source": "selection",
+            "output": "clipboard",
+            "localOnly": true
+          }
+        },
+        {
+          "label": "Fax auswerten",
+          "icon": "v:texterkennung",
+          "color": "#E8EAED",
+          "action": {
+            "type": "macro",
+            "stepDelayMs": 60,
+            "steps": [
+              {
+                "type": "media",
+                "media": "ocr"
+              },
+              {
+                "type": "ai",
+                "text": "Du erhältst einen Arztbrief. Liste alle darin genannten apparativen Untersuchungen mit ihrem Befund auf, je Untersuchung eine Zeile nach dem Schema „Untersuchung: Befund“, zum Beispiel:\nEKG: …\nLabor: …\nRöntgen: …\nSono: …\nCT: …\nMRT: …\nEndoskopie: …\nGib nur Untersuchungen aus, die im Brief tatsächlich vorkommen; lass alle anderen weg. Übernimm Befunde wörtlich oder knapp sinngemäß, mit Datum, wenn angegeben. Keine Bewertung, keine Ergänzungen.",
+                "source": "clipboard",
+                "output": "clipboard",
+                "localOnly": true
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

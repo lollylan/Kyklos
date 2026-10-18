@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -59,6 +60,13 @@ namespace Kyklos
         bool _ticking;
         readonly IconView IconPreview;
         readonly Popup IconPopup;
+        readonly StackPanel PAi, ProviderHost;
+        readonly TextBox AiPrompt;
+        readonly ComboBox AiTemplateBox, AiSourceBox, AiOutputBox, AiProviderBox, AddProviderBox;
+        readonly CheckBox AiLocalSwitch;
+        readonly Border AiNote;
+        readonly TextBlock AiNoteTitle, AiNoteText, AiOutputHelp, AiSection;
+        readonly Button AiSetupBtn;
 
         Config Cfg { get { return _host.Config; } }
         List<Slot> CurrentSlots { get { return _trail.Count == 0 ? _wheel.Slots : _trail[_trail.Count - 1].Action.Slots; } }
@@ -118,6 +126,12 @@ namespace Kyklos
             UsageHint = F<TextBlock>("UsageHint"); SampleNote = F<Border>("SampleNote"); SampleKeep = F<Button>("SampleKeep");
 
             SkinTiles = F<UniformGrid>("SkinTiles"); SkinHelp = F<TextBlock>("SkinHelp");
+            PAi = F<StackPanel>("PAi"); ProviderHost = F<StackPanel>("ProviderHost"); AiPrompt = F<TextBox>("AiPrompt");
+            AiTemplateBox = F<ComboBox>("AiTemplateBox"); AiSourceBox = F<ComboBox>("AiSourceBox"); AiOutputBox = F<ComboBox>("AiOutputBox");
+            AiProviderBox = F<ComboBox>("AiProviderBox"); AddProviderBox = F<ComboBox>("AddProviderBox");
+            AiLocalSwitch = F<CheckBox>("AiLocalSwitch"); AiNote = F<Border>("AiNote");
+            AiNoteTitle = F<TextBlock>("AiNoteTitle"); AiNoteText = F<TextBlock>("AiNoteText"); AiOutputHelp = F<TextBlock>("AiOutputHelp");
+            AiSection = F<TextBlock>("AiSection"); AiSetupBtn = F<Button>("AiSetupBtn");
 
             Preview.EditMode = true;
             Preview.Motion = SystemParameters.ClientAreaAnimation;
@@ -157,6 +171,7 @@ namespace Kyklos
         public void DevCloneWheel() { CloneWheel.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); }
         public void DevHome() { ShowEditor(); SelectWheel(Cfg.Wheels[0]); }
         public void DevSelectWheel(int i) { ShowEditor(); RebuildWheelList(); SelectWheel(Cfg.Wheels[i]); }
+        public void DevShowAiProviders() { LoadGeneral(); ShowAiProviders(); }
         public void DevScrollGeneral() { GeneralPanel.UpdateLayout(); GeneralPanel.ScrollToEnd(); }
         public void DevScrollInspector(bool end = true)
         {
@@ -193,7 +208,7 @@ namespace Kyklos
 
         void BuildChoices()
         {
-            foreach (var t in new[] { ActionType.None, ActionType.Text, ActionType.Keys, ActionType.Open, ActionType.Url,
+            foreach (var t in new[] { ActionType.None, ActionType.Text, ActionType.Ai, ActionType.Keys, ActionType.Open, ActionType.Url,
                                       ActionType.Media, ActionType.Macro, ActionType.Folder })
                 TypeBox.Items.Add(Item(ActionDef.TypeName(t), t));
 
@@ -202,9 +217,14 @@ namespace Kyklos
 
             foreach (var m in ActionDef.MediaNames) MediaBox.Items.Add(Item(m[1], m[0]));
 
-            foreach (var t in new[] { ActionType.Text, ActionType.Keys, ActionType.Open, ActionType.Url, ActionType.Media, ActionType.Delay, ActionType.Click,
+            foreach (var t in new[] { ActionType.Text, ActionType.Ai, ActionType.Keys, ActionType.Open, ActionType.Url, ActionType.Media, ActionType.Delay, ActionType.Click,
                                       ActionType.Focus })
                 AddStepBox.Items.Add(Item(ActionDef.TypeName(t), t));
+
+            foreach (var t in AiTemplates.All) AiTemplateBox.Items.Add(Item(t[0], t));
+            FillAiChoices(AiSourceBox, AiOutputBox);
+            foreach (var k in AiKinds.All)
+                AddProviderBox.Items.Add(Item(k == AiKinds.Ollama ? "Ollama – lokal oder im Praxisnetz" : AiKinds.Name(k) + " – extern, über das Internet", k));
 
             foreach (var c in Palette.Colors)
             {
@@ -436,6 +456,7 @@ namespace Kyklos
                 a.Type = (ActionType)TagOf(TypeBox);
                 if (a.Type == ActionType.Folder && a.Slots.Count < Wheel.MinSlots)
                     while (a.Slots.Count < 6) a.Slots.Add(new Slot());
+                if (a.Type == ActionType.Ai && !Cur.HasIcon) Cur.Icon = "v:ki";
                 SlotChanged();
             };
             TextBody.TextChanged += (s, e) =>
@@ -473,7 +494,11 @@ namespace Kyklos
             AddStepBox.SelectionChanged += (s, e) =>
             {
                 if (_loading || TagOf(AddStepBox) == null) return;
-                Cur.Action.Steps.Add(new ActionDef { Type = (ActionType)TagOf(AddStepBox) });
+                var step = new ActionDef { Type = (ActionType)TagOf(AddStepBox) };
+                // Nach „Text erkennen“ liegt der Text in der Zwischenablage, nicht in einer Markierung.
+                if (step.Type == ActionType.Ai && Cur.Action.Steps.Any(x => x.Type == ActionType.Media && x.Media == "ocr"))
+                    step.AiSource = AiSources.Clipboard;
+                Cur.Action.Steps.Add(step);
                 _loading = true; AddStepBox.SelectedIndex = -1; _loading = false;
                 BuildSteps();
                 SlotChanged(false);
@@ -492,6 +517,60 @@ namespace Kyklos
                 CancelRecord();
                 var target = Cur;
                 Gallery.Show(_w, Skin.Get(Cfg.Settings.Skin), w => FillFolder(target, w), "Einsetzen", "Eingesetzt", true);
+            };
+
+            AiPrompt.TextChanged += (s, e) => { if (_loading) return; Cur.Action.Text = AiPrompt.Text; SlotChanged(false); };
+            AiTemplateBox.SelectionChanged += (s, e) =>
+            {
+                var t = TagOf(AiTemplateBox) as string[];
+                if (_loading || t == null) return;
+                _loading = true; AiTemplateBox.SelectedIndex = -1; _loading = false;
+                var a = Cur.Action;
+                string now = (a.Text ?? "").Trim();
+                if (now.Length > 0 && now != t[1] &&
+                    MessageBox.Show(_w, "Die bisherige Anweisung durch die Vorlage „" + t[0] + "“ ersetzen?", "Vorlage einsetzen",
+                                    MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+                a.Text = t[1];
+                if (t[0].StartsWith("Arztbrief", StringComparison.Ordinal)) a.LocalOnly = true;
+                if (string.IsNullOrWhiteSpace(Cur.Label)) Cur.Label = t[0];
+                SlotChanged();
+            };
+            AiSourceBox.SelectionChanged += (s, e) =>
+            {
+                if (_loading || TagOf(AiSourceBox) == null) return;
+                Cur.Action.AiSource = (string)TagOf(AiSourceBox);
+                Touch();
+            };
+            AiOutputBox.SelectionChanged += (s, e) =>
+            {
+                if (_loading || TagOf(AiOutputBox) == null) return;
+                Cur.Action.AiOutput = (string)TagOf(AiOutputBox);
+                AiOutputHelp.Text = OutputHelp(Cur.Action.AiOutput);
+                Touch();
+            };
+            AiProviderBox.SelectionChanged += (s, e) =>
+            {
+                if (_loading || TagOf(AiProviderBox) == null) return;
+                Cur.Action.Provider = (string)TagOf(AiProviderBox);
+                UpdateAiNote();
+                Touch();
+            };
+            RoutedEventHandler local = (s, e) =>
+            {
+                if (_loading) return;
+                Cur.Action.LocalOnly = AiLocalSwitch.IsChecked == true;
+                UpdateAiNote();
+                Touch();
+            };
+            AiLocalSwitch.Checked += local;
+            AiLocalSwitch.Unchecked += local;
+            AiSetupBtn.Click += (s, e) => ShowAiProviders();
+            AddProviderBox.SelectionChanged += (s, e) =>
+            {
+                var kind = TagOf(AddProviderBox) as string;
+                if (_loading || kind == null) return;
+                _loading = true; AddProviderBox.SelectedIndex = -1; _loading = false;
+                AddProvider(kind);
             };
 
             TestBtn.Click += async (s, e) =>
@@ -1097,6 +1176,14 @@ namespace Kyklos
             SelectTag(MediaBox, a.Media);
             StepDelayBox.Text = a.StepDelayMs.ToString();
             if (a.Type == ActionType.Macro) BuildSteps();
+            if (AiPrompt.Text != a.Text) AiPrompt.Text = a.Text;
+            SelectTag(AiSourceBox, a.AiSource);
+            SelectTag(AiOutputBox, a.AiOutput);
+            AiOutputHelp.Text = OutputHelp(a.AiOutput);
+            FillProviderBox(AiProviderBox, a.Provider);
+            AiLocalSwitch.IsChecked = a.LocalOnly;
+            PAi.Visibility = Vis(a.Type == ActionType.Ai);
+            if (a.Type == ActionType.Ai) UpdateAiNote();
 
             PText.Visibility = Vis(a.Type == ActionType.Text);
             SampleNote.Visibility = Vis(a.Type == ActionType.Text && a.Sample);
@@ -1223,6 +1310,8 @@ namespace Kyklos
                     return ClickEditor(step);
                 case ActionType.Focus:
                     return FocusEditor(step);
+                case ActionType.Ai:
+                    return AiStepEditor(step);
                 case ActionType.Open:
                     var ob = new TextBox { Text = step.Path, Tag = "Programm, Datei oder Ordner" };
                     ob.TextChanged += (s, e) => { step.Path = ob.Text; Touch(); };
@@ -1357,6 +1446,451 @@ namespace Kyklos
                        "Findet sich keins, bricht das Makro ab, damit die folgenden Tasten nicht im falschen Programm landen."
             });
             return panel;
+        }
+
+        // ---------------------------------------------------------------- KI-Anweisung
+
+        static void FillAiChoices(ComboBox source, ComboBox output)
+        {
+            source.Items.Add(Item("Markierten Text (wird mit Strg+C kopiert)", AiSources.Selection));
+            source.Items.Add(Item("Inhalt der Zwischenablage", AiSources.Clipboard));
+            output.Items.Add(Item("In die Zwischenablage legen", AiOutputs.Clipboard));
+            output.Items.Add(Item("Markierung direkt ersetzen", AiOutputs.Replace));
+        }
+
+        static string OutputHelp(string output)
+        {
+            return output == AiOutputs.Replace
+                ? "Sobald die KI fertig ist, wird die Markierung ersetzt – aber nur, wenn dasselbe Feld noch aktiv ist. Sonst liegt das Ergebnis in der Zwischenablage. Bis dahin nicht im Feld weitertippen."
+                : "Ist die KI fertig, meldet sich Kyklos am Mauszeiger. Dann mit Strg+V einfügen – auch in einem anderen Programm.";
+        }
+
+        string EffectiveDefaultId()
+        {
+            var st = Cfg.Settings;
+            var p = st.Providers.FirstOrDefault(x => x.Id == st.DefaultProvider) ?? st.Providers.FirstOrDefault();
+            return p == null ? "" : p.Id;
+        }
+
+        static string ProviderLine(AiProvider p) { return p.DisplayName + (p.External ? " · extern" : " · lokal"); }
+
+        /// <summary>„Standard: …“ und alle Anbieter. Eine Id, die es nicht mehr gibt, zeigt den Standard – den nutzt die Aktion dann auch.</summary>
+        void FillProviderBox(ComboBox box, string selected)
+        {
+            bool was = _loading;
+            _loading = true;
+            box.Items.Clear();
+            var st = Cfg.Settings;
+            var def = st.Providers.FirstOrDefault(x => x.Id == EffectiveDefaultId());
+            box.Items.Add(Item(def == null ? "Standard-Anbieter (noch keiner eingerichtet)" : "Standard: " + ProviderLine(def), ""));
+            foreach (var p in st.Providers) box.Items.Add(Item(ProviderLine(p), p.Id));
+            if (st.Providers.Any(p => p.Id == selected)) SelectTag(box, selected); else box.SelectedIndex = 0;
+            _loading = was;
+        }
+
+        /// <summary>Hinweis unter der Anweisung: kein Anbieter, externer Anbieter, oder extern trotz „Nur lokal“.</summary>
+        void UpdateAiNote()
+        {
+            var a = Cur.Action;
+            var p = AiRunner.Resolve(a, Cfg.Settings);
+            string title = null, text = null;
+            bool danger = false;
+            if (p == null)
+            {
+                title = "Noch kein KI-Anbieter eingerichtet";
+                text = "Richte unter Allgemein Ollama oder einen Dienst ein. Bis dahin meldet das Segment beim Auslösen nur einen Hinweis.";
+            }
+            else if (p.External && a.LocalOnly)
+            {
+                danger = true;
+                title = "So wird die Anweisung nicht ausgeführt";
+                text = "„" + p.DisplayName + "“ ist ein externer Anbieter, die Anweisung ist aber auf lokal beschränkt. Wähle einen Ollama-Anbieter im eigenen Netz.";
+            }
+            else if (p.External)
+            {
+                danger = true;
+                title = "Externer Anbieter – keine Patientendaten";
+                text = "Der Text geht an „" + p.DisplayName + "“ und verlässt die Praxis. Unter keinen Umständen Patientendaten, Befunde oder Arztbriefe damit bearbeiten.";
+            }
+            AiNote.Visibility = Vis(title != null);
+            if (title == null) return;
+            AiNote.Background = Res(danger ? "DangerSoft" : "AccentSoft");
+            AiNoteTitle.Foreground = Res(danger ? "Danger" : "Ink");
+            AiNoteTitle.Text = title;
+            AiNoteText.Text = text;
+            AiSetupBtn.Visibility = Vis(p == null);
+        }
+
+        void ShowAiProviders()
+        {
+            ShowGeneral();
+            ScrollGeneralTo(AiSection);
+        }
+
+        void ScrollGeneralTo(FrameworkElement e)
+        {
+            _w.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                GeneralPanel.UpdateLayout();
+                double y = e.TransformToAncestor(GeneralPanel).Transform(new Point(0, 0)).Y;
+                GeneralPanel.ScrollToVerticalOffset(GeneralPanel.VerticalOffset + y - 20);
+            }), DispatcherPriority.Loaded);
+        }
+
+        FrameworkElement AiStepEditor(ActionDef step)
+        {
+            var panel = new StackPanel();
+            var prompt = new TextBox
+            {
+                Style = (Style)_w.FindResource("TextArea"), Text = step.Text, MinHeight = 60, MaxHeight = 140,
+                Tag = "Was soll die KI mit dem Text tun?"
+            };
+            prompt.TextChanged += (s, e) => { step.Text = prompt.Text; Touch(); };
+            panel.Children.Add(prompt);
+
+            var src = new ComboBox();
+            var output = new ComboBox();
+            var prov = new ComboBox();
+            FillAiChoices(src, output);
+            SelectTag(src, step.AiSource);
+            SelectTag(output, step.AiOutput);
+            FillProviderBox(prov, step.Provider);
+            Func<string, TextBlock> label = t => new TextBlock { Text = t, Style = (Style)_w.FindResource("FieldLabel"), Margin = new Thickness(0, 10, 0, 4) };
+            panel.Children.Add(label("Text holen"));
+            panel.Children.Add(src);
+            panel.Children.Add(label("Ergebnis"));
+            panel.Children.Add(output);
+            panel.Children.Add(label("KI-Anbieter"));
+            panel.Children.Add(prov);
+
+            var local = new CheckBox
+            {
+                Style = (Style)_w.FindResource("Switch"), IsChecked = step.LocalOnly, Margin = new Thickness(0, 10, 0, 0),
+                Content = new TextBlock { Text = "Nur lokal ausführen (Patientendaten)", VerticalAlignment = VerticalAlignment.Center }
+            };
+            panel.Children.Add(local);
+            var warn = new TextBlock { Style = (Style)_w.FindResource("Help"), Foreground = Res("Danger") };
+            panel.Children.Add(warn);
+            Action note = () =>
+            {
+                var p = AiRunner.Resolve(step, Cfg.Settings);
+                string t = p == null ? "Noch kein KI-Anbieter eingerichtet."
+                         : p.External && step.LocalOnly ? "„" + p.DisplayName + "“ ist extern – dieser Schritt bricht ab, weil er auf lokal beschränkt ist."
+                         : p.External ? "Externer Anbieter: keine Patientendaten!" : "";
+                warn.Text = t;
+                warn.Visibility = Vis(t.Length > 0);
+            };
+            note();
+
+            src.SelectionChanged += (s, e) => { if (TagOf(src) != null) { step.AiSource = (string)TagOf(src); Touch(); } };
+            output.SelectionChanged += (s, e) => { if (TagOf(output) != null) { step.AiOutput = (string)TagOf(output); Touch(); } };
+            prov.SelectionChanged += (s, e) => { if (TagOf(prov) != null) { step.Provider = (string)TagOf(prov); note(); Touch(); } };
+            local.Checked += (s, e) => { step.LocalOnly = true; note(); Touch(); };
+            local.Unchecked += (s, e) => { step.LocalOnly = false; note(); Touch(); };
+
+            panel.Children.Add(new TextBlock
+            {
+                Style = (Style)_w.FindResource("Help"), Margin = new Thickness(0, 8, 0, 0),
+                Text = "Im Makro wartet der nächste Schritt, bis die KI fertig ist. Nach „Text erkennen“ als Quelle die Zwischenablage wählen."
+            });
+            return panel;
+        }
+
+        // ---------------------------------------------------------------- KI-Anbieter
+
+        void BuildProviders()
+        {
+            ProviderHost.Children.Clear();
+            foreach (var p in Cfg.Settings.Providers) ProviderHost.Children.Add(ProviderEditor(p));
+        }
+
+        void AddProvider(string kind)
+        {
+            if (kind != AiKinds.Ollama)
+            {
+                string q = AiKinds.Name(kind) + " ist ein Dienst im Internet. Alles, was du damit bearbeitest, verlässt die Praxis und wird auf den Servern des Anbieters verarbeitet.\n\n" +
+                           "UNTER KEINEN UMSTÄNDEN DÜRFEN DAMIT PATIENTENDATEN VERARBEITET WERDEN – keine Namen, Befunde, Arztbriefe, Diagnosen oder andere " +
+                           "personenbezogene Gesundheitsdaten (ärztliche Schweigepflicht § 203 StGB, DSGVO Art. 9).\n\n" +
+                           "Nur für Texte ohne jeden Personenbezug verwenden. Anweisungen für Patientendaten lassen sich mit „Nur lokal ausführen“ gegen externe Anbieter sperren.\n\n" +
+                           "Anbieter trotzdem hinzufügen?";
+                if (MessageBox.Show(_w, q, "Externer KI-Anbieter – keine Patientendaten", MessageBoxButton.OKCancel, MessageBoxImage.Warning,
+                                    MessageBoxResult.Cancel) != MessageBoxResult.OK) return;
+            }
+            var st = Cfg.Settings;
+            var p = new AiProvider { Kind = kind };
+            var current = st.Providers.FirstOrDefault(x => x.Id == EffectiveDefaultId());
+            if (current != null) st.DefaultProvider = current.Id;
+            st.Providers.Add(p);
+            // Ein lokaler Anbieter löst einen externen als Standard ab – so geht nichts aus Versehen ins Internet.
+            if (current == null || (current.External && !p.External)) st.DefaultProvider = p.Id;
+            BuildProviders();
+            Touch();
+            var editor = ProviderHost.Children[ProviderHost.Children.Count - 1] as FrameworkElement;
+            if (editor != null) ScrollGeneralTo(editor);
+            if (kind == AiKinds.Ollama)
+            {
+                var load = editor == null ? null : editor.Tag as Func<Task>;
+                if (load != null) _w.Dispatcher.BeginInvoke(new Action(async () => await load()), DispatcherPriority.Loaded);
+            }
+        }
+
+        void SetStatus(TextBlock t, string text, bool bad)
+        {
+            t.Text = text;
+            t.Foreground = Res(bad ? "Danger" : "Ink2");
+            t.Visibility = Visibility.Visible;
+        }
+
+        static string Explain(Exception ex)
+        {
+            var ai = ex as AiException;
+            if (ai != null) return ai.Message + (ai.Help.Length > 0 ? ". " + ai.Help : ".");
+            if (ex is OperationCanceledException) return "Keine Antwort in der vorgesehenen Zeit.";
+            return ex.Message;
+        }
+
+        /// <summary>Ein Anbieter als Zeile der Liste. Tag trägt die Funktion „Modelle laden“, damit ein neuer Ollama-Anbieter sie gleich ausführen kann.</summary>
+        FrameworkElement ProviderEditor(AiProvider p)
+        {
+            var panel = new StackPanel();
+            Action refresh = () => { };
+
+            // Kopf: Name | Standard | Entfernen
+            var head = new DockPanel();
+            var remove = new Button { Style = (Style)_w.FindResource("BtnGhost"), Content = "Entfernen", Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            DockPanel.SetDock(remove, Dock.Right);
+            remove.Click += (s, e) => Confirm(remove, "Wirklich entfernen?", () =>
+            {
+                Cfg.Settings.Providers.Remove(p);
+                if (Cfg.Settings.DefaultProvider == p.Id) Cfg.Settings.DefaultProvider = "";
+                try { ApiKeys.Remove(p.Id); }
+                catch (Exception ex) { Log.Write("API-Schlüssel nicht entfernt: " + ex.Message); }
+                BuildProviders();
+                Touch();
+            });
+            head.Children.Add(remove);
+            FrameworkElement std;
+            if (EffectiveDefaultId() == p.Id)
+                std = new TextBlock
+                {
+                    Text = "Standard", Style = (Style)_w.FindResource("InlineLabel"), Margin = new Thickness(14, 0, 8, 0),
+                    ToolTip = "Segmente ohne eigene Anbieterwahl nutzen diesen Anbieter."
+                };
+            else
+            {
+                var b = new Button
+                {
+                    Style = (Style)_w.FindResource("BtnGhost"), Content = "Als Standard", Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                    ToolTip = "Segmente ohne eigene Anbieterwahl nutzen dann diesen Anbieter."
+                };
+                b.Click += (s, e) => { Cfg.Settings.DefaultProvider = p.Id; BuildProviders(); Touch(); };
+                std = b;
+            }
+            DockPanel.SetDock(std, Dock.Right);
+            head.Children.Add(std);
+            var name = new TextBox { Text = p.Name, Tag = AiKinds.Name(p.Kind), FontWeight = FontWeights.SemiBold, MaxLength = 40 };
+            name.TextChanged += (s, e) => { p.Name = name.Text; Touch(); };
+            head.Children.Add(name);
+            panel.Children.Add(head);
+
+            var kindLine = new TextBlock { Style = (Style)_w.FindResource("Help") };
+            panel.Children.Add(kindLine);
+
+            var warnTitle = new TextBlock
+            {
+                Text = "Externer Anbieter – keine Patientendaten", FontWeight = FontWeights.SemiBold, Foreground = Res("Danger"), TextWrapping = TextWrapping.Wrap
+            };
+            var warnText = new TextBlock { TextWrapping = TextWrapping.Wrap, LineHeight = 18, Margin = new Thickness(0, 3, 0, 0) };
+            var warnBody = new StackPanel();
+            warnBody.Children.Add(warnTitle);
+            warnBody.Children.Add(warnText);
+            var warn = new Border
+            {
+                Background = Res("DangerSoft"), CornerRadius = new CornerRadius(6), Padding = new Thickness(12, 10, 12, 12),
+                Margin = new Thickness(0, 12, 0, 0), Child = warnBody
+            };
+            panel.Children.Add(warn);
+
+            Func<string, TextBlock> label = t => new TextBlock { Text = t, Style = (Style)_w.FindResource("FieldLabel"), Margin = new Thickness(0, 14, 0, 6) };
+            Func<string, TextBlock> help = t => new TextBlock { Text = t, Style = (Style)_w.FindResource("Help") };
+
+            if (p.Kind == AiKinds.Ollama)
+            {
+                panel.Children.Add(label("Adresse"));
+                var url = new TextBox { Text = p.Url, Tag = "localhost:11434 – dieser PC" };
+                url.TextChanged += (s, e) => { p.Url = url.Text; refresh(); Touch(); };
+                panel.Children.Add(url);
+                panel.Children.Add(help("Leer lassen für diesen PC. Für einen Rechner im Praxisnetz dessen Namen oder IP-Adresse eintragen, z. B. 192.168.178.20."));
+            }
+
+            if (p.NeedsKey)
+            {
+                panel.Children.Add(label("API-Schlüssel"));
+                var keyHost = new StackPanel();
+                panel.Children.Add(keyHost);
+                panel.Children.Add(help("Wird mit Windows für dein Benutzerkonto verschlüsselt gespeichert, nie angezeigt und nie exportiert. Auf einem anderen PC muss er neu eingetragen werden."));
+                Action<bool> buildKey = null;
+                buildKey = edit =>
+                {
+                    keyHost.Children.Clear();
+                    bool has = ApiKeys.Has(p.Id);
+                    if (has && !edit)
+                    {
+                        string hint = ApiKeys.Hint(p.Id);
+                        var row = new DockPanel();
+                        var tools = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(12, 0, 0, 0) };
+                        DockPanel.SetDock(tools, Dock.Right);
+                        var replace = new Button { Style = (Style)_w.FindResource("Btn"), Content = "Ersetzen" };
+                        replace.Click += (s, e) => buildKey(true);
+                        var del = new Button { Style = (Style)_w.FindResource("BtnGhost"), Content = "Entfernen", Margin = new Thickness(4, 0, 0, 0) };
+                        del.Click += (s, e) => Confirm(del, "Wirklich entfernen?", () =>
+                        {
+                            try { ApiKeys.Remove(p.Id); }
+                            catch (Exception ex) { MessageBox.Show(_w, "Der Schlüssel konnte nicht entfernt werden:\n\n" + ex.Message, "Kyklos", MessageBoxButton.OK, MessageBoxImage.Warning); }
+                            buildKey(false);
+                        });
+                        tools.Children.Add(replace);
+                        tools.Children.Add(del);
+                        row.Children.Add(tools);
+                        string shown = hint == null ? "Gespeichert, aber auf diesem PC nicht lesbar. Bitte ersetzen."
+                                     : hint.Length > 1 ? "Verschlüsselt gespeichert, endet auf " + hint.Substring(1) : "Verschlüsselt gespeichert";
+                        row.Children.Add(new TextBlock
+                        {
+                            Text = shown, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center,
+                            Foreground = Res(hint == null ? "Danger" : "Ink")
+                        });
+                        keyHost.Children.Add(row);
+                        return;
+                    }
+                    var input = new DockPanel();
+                    var save = new Button { Style = (Style)_w.FindResource("Btn"), Content = "Speichern", Margin = new Thickness(8, 0, 0, 0) };
+                    DockPanel.SetDock(save, Dock.Right);
+                    input.Children.Add(save);
+                    var pw = new PasswordBox();
+                    input.Children.Add(pw);
+                    Action store = () =>
+                    {
+                        string k = pw.Password.Trim();
+                        if (k.Length == 0) { pw.Focus(); return; }
+                        try { ApiKeys.Set(p.Id, k); }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(_w, "Der Schlüssel konnte nicht gespeichert werden:\n\n" + ex.Message, "Kyklos", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+                        pw.Clear();
+                        buildKey(false);
+                    };
+                    save.Click += (s, e) => store();
+                    pw.KeyDown += (s, e) => { if (e.Key == Key.Enter) { e.Handled = true; store(); } };
+                    keyHost.Children.Add(input);
+                    if (edit) pw.Focus();
+                };
+                buildKey(false);
+            }
+
+            panel.Children.Add(label("Modell"));
+            var modelRow = new DockPanel();
+            var load = new Button { Style = (Style)_w.FindResource("Btn"), Content = "Modelle laden", Margin = new Thickness(8, 0, 0, 0) };
+            DockPanel.SetDock(load, Dock.Right);
+            modelRow.Children.Add(load);
+            var model = new TextBox { Text = p.Model, Tag = "Modellname – oder „Modelle laden“" };
+            modelRow.Children.Add(model);
+            panel.Children.Add(modelRow);
+            var pick = new ComboBox { Tag = "Modell aus der Liste wählen …", Margin = new Thickness(0, 8, 0, 0), Visibility = Visibility.Collapsed };
+            panel.Children.Add(pick);
+            model.TextChanged += (s, e) => { p.Model = model.Text.Trim(); refresh(); Touch(); };
+            bool filling = false;
+            pick.SelectionChanged += (s, e) =>
+            {
+                var id = TagOf(pick) as string;
+                if (!filling && id != null) model.Text = id;
+            };
+
+            var test = new Button { Style = (Style)_w.FindResource("Btn"), Content = "Verbindung testen", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 12, 0, 0) };
+            panel.Children.Add(test);
+            var status = new TextBlock { Style = (Style)_w.FindResource("Help"), Visibility = Visibility.Collapsed };
+            panel.Children.Add(status);
+
+            Func<string> keyOrThrow = () =>
+            {
+                if (!p.NeedsKey) return null;
+                string k = ApiKeys.Get(p.Id);
+                if (k == null) throw new AiException("Kein API-Schlüssel", "Erst den Schlüssel eintragen und speichern");
+                return k;
+            };
+
+            Func<Task> loadModels = async () =>
+            {
+                load.IsEnabled = false;
+                load.Content = "Lädt …";
+                try
+                {
+                    List<string> ids;
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
+                        ids = await AiClient.Models(p, keyOrThrow(), cts.Token);
+                    filling = true;
+                    pick.Items.Clear();
+                    foreach (var id in ids) pick.Items.Add(Item(id, id));
+                    SelectTag(pick, p.Model);
+                    filling = false;
+                    pick.Visibility = Vis(ids.Count > 0);
+                    if (ids.Count == 0)
+                        SetStatus(status, p.Kind == AiKinds.Ollama
+                            ? "Ollama läuft, hat aber noch kein Modell. Auf dem Ollama-Rechner zum Beispiel „ollama pull qwen3:8b“ ausführen."
+                            : "Keine Modelle gefunden.", true);
+                    else
+                        SetStatus(status, (ids.Count == 1 ? "1 Modell" : ids.Count + " Modelle") + " verfügbar." +
+                                          (p.Model.Length == 0 ? " Wähle eines aus der Liste." : ""), false);
+                }
+                catch (Exception ex) { SetStatus(status, Explain(ex), true); }
+                finally
+                {
+                    filling = false;
+                    load.IsEnabled = true;
+                    load.Content = "Modelle laden";
+                }
+            };
+            load.Click += async (s, e) => await loadModels();
+
+            test.Click += async (s, e) =>
+            {
+                test.IsEnabled = false;
+                test.Content = "Teste …";
+                var clock = Stopwatch.StartNew();
+                try
+                {
+                    AiResult r;
+                    // Nur ein fester Prüftext – nie Inhalte aus der Praxis.
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
+                        r = await AiClient.Complete(p, keyOrThrow(), "Antworte nur mit dem Wort OK.", "Verbindungstest", cts.Token);
+                    string answer = r.Text.Length > 40 ? r.Text.Substring(0, 38) + " …" : r.Text;
+                    SetStatus(status, "Verbunden. Antwort nach " + clock.Elapsed.TotalSeconds.ToString("0.0") + " s: „" + answer + "“", false);
+                }
+                catch (Exception ex) { SetStatus(status, Explain(ex), true); }
+                finally
+                {
+                    test.IsEnabled = true;
+                    test.Content = "Verbindung testen";
+                }
+            };
+
+            refresh = () =>
+            {
+                string reason = p.ExternalReason();
+                kindLine.Text = AiKinds.Name(p.Kind) + (reason == null ? " · lokal: die Texte bleiben im eigenen Netz" : " · extern");
+                warn.Visibility = Vis(reason != null);
+                if (reason != null)
+                    warnText.Text = reason + " Was du damit bearbeitest, verlässt die Praxis. Unter keinen Umständen Patientendaten, Befunde oder Arztbriefe " +
+                                    "verarbeiten (Schweigepflicht § 203 StGB, DSGVO Art. 9) – nur Texte ohne Personenbezug.";
+            };
+            refresh();
+
+            return new Border
+            {
+                BorderBrush = Res("Line"), BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(0, 16, 0, 18),
+                Child = panel, Tag = loadModels
+            };
         }
 
         // ---------------------------------------------------------------- Tasten aufnehmen, Rückfragen
@@ -1547,6 +2081,7 @@ namespace Kyklos
             Preview.Skin = Skin.Get(st.Skin);
             UpdateTicker();
             ConfigPathText.Text = _host.ConfigPath;
+            BuildProviders();
             VersionText.Text = "Kyklos " + Program.Version + " · MIT-Lizenz";
             _loading = false;
         }

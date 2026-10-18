@@ -76,6 +76,7 @@ sofort.
 | Website öffnen | Im Standardbrowser |
 | Medien und System | Wiedergabe, Lautstärke, Bildschirmausschnitt, [Text erkennen](#text-erkennen), Desktop anzeigen, PC sperren |
 | Makro | Mehrere der obigen Schritte nacheinander, mit Pausen und Mausklicks (links, doppelt, rechts, Mitte) an einem festen Bildschirmpunkt. „Position aufnehmen" gibt 3 Sekunden, um den Zeiger auf das Ziel zu stellen; nach dem Klick steht der Zeiger wieder, wo er war. Zuverlässiger als ein Klick ist der Schritt „Fenster nach vorn holen“: Er sucht das zuletzt benutzte Fenster eines Programms (optional mit Teil des Titels), holt es auch verdeckt oder minimiert nach vorn und startet das Programm bei Bedarf. Findet er keins, bricht das Makro ab, damit die folgenden Tasten nicht im falschen Programm landen |
+| KI-Anweisung | Schickt markierten Text mit einer Anweisung an ein Sprachmodell (Ollama, OpenAI, Anthropic, OpenRouter) und legt das Ergebnis in die Zwischenablage oder ersetzt die Markierung – siehe [KI-Anweisungen](#ki-anweisungen) |
 | Unterrad | Ein weiteres Rad hinter diesem Segment |
 
 Platzhalter im Text: `{datum}` (03.10.2026), `{uhrzeit}` (14:32), `{wochentag}`, `{zwischenablage}` (aktueller Inhalt) und
@@ -178,6 +179,57 @@ Einrichten:
 
 Das Bild geht über eine Pipe an Tesseract, nicht über eine Datei; nichts davon landet auf der Festplatte.
 
+## KI-Anweisungen
+
+Markierten Text von einem Sprachmodell bearbeiten lassen: zusammenfassen, ausführlicher formulieren, korrigieren oder
+aus einem Arztbrief die Untersuchungen nach festem Schema herausziehen. Die Aktion heißt *KI-Anweisung*.
+
+1. Text markieren, Rad öffnen, Segment wählen. Kyklos kopiert die Markierung (`Strg + C`) und schickt sie mit der
+   Anweisung an das Modell. Das Rad ist sofort wieder frei, eine Tafel am Zeiger zeigt „KI arbeitet …“.
+2. Ist das Modell fertig, meldet sich die Tafel dort, wo der Zeiger gerade ist, mit den ersten Zeilen des Ergebnisses.
+
+Was dann mit dem Ergebnis passiert, legt jedes Segment fest:
+
+| Ergebnis | Wann |
+|---|---|
+| In die Zwischenablage legen | Text aus einem Programm holen und in ein anderes einfügen: mit `Strg + V`, sobald die Tafel „Fertig“ meldet |
+| Markierung direkt ersetzen | Text an Ort und Stelle umschreiben. Ersetzt wird nur, wenn noch dasselbe Feld aktiv ist – sonst liegt das Ergebnis in der Zwischenablage und die Tafel sagt es |
+
+Statt der Markierung kann auch der Inhalt der Zwischenablage die Quelle sein – etwa im Makro *Text erkennen* → *KI-Anweisung*,
+das ein gefaxtes Arztbrief-Stück direkt auswertet. Im Makro wartet der nächste Schritt, bis die KI fertig ist.
+
+Die Anweisung ist frei formulierbar, auch mehrzeilig mit Schema. *Vorlage einsetzen* bietet Anfänge: Zusammenfassen,
+Ausführlicher, Korrigieren, Freundlicher, Für Patienten erklären, Arztbrief: Untersuchungen, Arztbrief: Diagnosen und
+Medikation. Kyklos ergänzt jede Anweisung um feste Regeln: nur das Ergebnis ausgeben, kein Markdown, nichts erfinden.
+**Gegenlesen bleibt Pflicht** – ein Sprachmodell kann Befunde weglassen oder falsch zuordnen.
+
+### Anbieter
+
+Unter *Allgemein › KI-Anbieter*:
+
+- **Ollama** – auf diesem PC oder auf einem Rechner im Praxisnetz (Adresse eintragen, z. B. `192.168.178.20`; dort muss
+  Ollama mit `OLLAMA_HOST=0.0.0.0` laufen). *Modelle laden* zeigt die dort installierten Modelle. Die Texte verlassen
+  die Praxis nicht. Kyklos schaltet das „Nachdenken“ von Reasoning-Modellen ab, damit kurze Aufgaben schnell gehen, und
+  vergrößert das Kontextfenster bei langen Briefen, damit Ollama nichts abschneidet.
+- **OpenAI (ChatGPT)**, **Anthropic (Claude)** und **OpenRouter** – Dienste im Internet, mit eigenem API-Schlüssel.
+
+Ein Anbieter ist der Standard; jedes Segment kann einen anderen wählen. *Verbindung testen* schickt nur einen festen
+Prüftext.
+
+> **Externe Anbieter: unter keinen Umständen Patientendaten.** Alles, was an OpenAI, Anthropic oder OpenRouter geht,
+> verlässt die Praxis (ärztliche Schweigepflicht § 203 StGB, DSGVO Art. 9). Kyklos warnt beim Hinzufügen, beim Anbieter
+> und bei jedem Segment, das ihn nutzt. Als extern gilt auch ein Ollama mit Adresse außerhalb des eigenen Netzes oder
+> mit einem Cloud-Modell (`…-cloud`).
+
+Der Schalter **Nur lokal ausführen** sperrt ein Segment gegen jeden externen Anbieter – auch wenn später jemand den
+Standard umstellt. Die Arztbrief-Vorlagen setzen ihn automatisch. Ein lokaler Anbieter wird beim Hinzufügen Standard,
+wenn bisher nur externe eingerichtet sind.
+
+**API-Schlüssel** werden mit der Windows-Datenschutz-API (DPAPI) für das angemeldete Benutzerkonto verschlüsselt und in
+`Kyklos.keys` neben der Konfiguration abgelegt – nie in `Kyklos.json`, also auch in keinem Export und keinem geteilten
+Rad. Angezeigt werden nur die letzten vier Zeichen. Auf einem anderen PC oder unter einem anderen Konto lässt sich die
+Datei nicht entschlüsseln; dort den Schlüssel neu eintragen. Kyklos protokolliert keine Texte, nur Fehlermeldungen.
+
 ## Räder aus dem Internet
 
 *Räder aus dem Internet …* in der Seitenleiste öffnet die Galerie: Räder anderer Anwender mit Vorschau, Suche und einem
@@ -200,6 +252,7 @@ vor dem Veröffentlichen die Umgebungsvariable `KYKLOS_GALERIE` auf einen lokale
 | `Kyklos.json` | Die Konfiguration, liegt neben der Exe (portabel). Ist der Ordner schreibgeschützt, unter `%APPDATA%\Kyklos`. Eine `Shortcut.json` aus der Zeit vor der Umbenennung wird beim ersten Start übernommen (kopiert). |
 | `Kyklos.json.tmp` | Zwischendatei beim Speichern. Bleibt nur liegen, wenn ein anderes Programm (Virenscanner, Synchronisierung) die Konfiguration bis zum Beenden festgehalten hat – ihr Inhalt wird beim nächsten Start übernommen. |
 | `Kyklos.log` | Entsteht nur, wenn etwas schiefgeht. |
+| `Kyklos.keys` | API-Schlüssel für [KI-Anbieter](#anbieter), verschlüsselt für dein Windows-Konto. Nur auf diesem PC lesbar. |
 | `tessdata\deu.traineddata` | Optional: deutsches Sprachmodell für [Tesseract](#genauer-mit-tesseract-optional). |
 
 Zum Mitnehmen auf einen anderen PC genügen Exe und `Kyklos.json`.
@@ -226,7 +279,8 @@ Einstellungen ausdrücklich übernommen hast, wird er mit dem Vermerk `[Beispiel
 - Läuft die Praxissoftware per Fernzugriff (Remotedesktop, Citrix), sieht Kyklos nur das Fernzugriffsprogramm, nicht
   das Programm darin. Dann über einen Teil des Fenstertitels unterscheiden.
 - Manche Virenscanner beäugen Programme, die Tastatur und Maus global beobachten. Kyklos liest nur mit, ob der
-  Auslöser gedrückt ist, und speichert oder versendet nichts.
+  Auslöser gedrückt ist, und speichert oder versendet nichts. Texte verlassen den PC nur bei einer KI-Anweisung, an
+  den dafür eingerichteten Anbieter.
 
 ## Bauen
 

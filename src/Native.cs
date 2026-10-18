@@ -94,6 +94,27 @@ namespace Kyklos
         public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
 
         [DllImport("user32.dll")]
+        public static extern uint GetClipboardSequenceNumber();
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct GUITHREADINFO
+        {
+            public int cbSize, flags;
+            public IntPtr hwndActive, hwndFocus, hwndCapture, hwndMenuOwner, hwndMoveSize, hwndCaret;
+            public RECT rcCaret;
+        }
+
+        [DllImport("user32.dll")]
+        public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO info);
+
+        /// <summary>Das Steuerelement mit dem Tastaturfokus im Vordergrundfenster, oder null.</summary>
+        public static IntPtr FocusedControl()
+        {
+            var gi = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
+            return GetGUIThreadInfo(0, ref gi) ? gi.hwndFocus : IntPtr.Zero;
+        }
+
+        [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")]
         public static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);

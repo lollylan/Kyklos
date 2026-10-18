@@ -17,6 +17,8 @@ namespace Kyklos
     ///   --dev-savetest &lt;ordner&gt;  prüft das Speichern gegen eine von außen offen gehaltene Datei (savetest.txt)
     ///   --dev-focus &lt;programm&gt; [titel]  holt dessen Fenster nach vorn wie der Makro-Schritt; Rückgabe 0 bei Erfolg
     ///   --dev-ocr &lt;bild&gt;...      erkennt den Text wie „Text erkennen“ und schreibt ihn nach &lt;bild&gt;.txt; Rückgabe 0, wenn Text kam
+    ///   --dev-ai &lt;ollama-adresse&gt; &lt;modell&gt; &lt;anweisung.txt&gt; &lt;text.txt&gt;  schickt den Text wie eine KI-Anweisung an Ollama,
+    ///                           Antwort nach &lt;text.txt&gt;.out.txt; Rückgabe 0, wenn eine kam
     /// </summary>
     public static class Dev
     {
@@ -28,12 +30,75 @@ namespace Kyklos
             if (args[0] == "--dev-gallery") return RenderGallery(args[1]);
             if (args[0] == "--dev-savetest") return SaveTest(args[1]);
             if (args[0] == "--dev-ocr") return OcrFiles(args);
+            if (args[0] == "--dev-ai" && args.Length >= 5) return AiFile(args);
+            if (args[0] == "--dev-kiwheel") { AiWheel(args[1]); return 0; }
             if (args[0] == "--dev-focus")
             {
                 var a = new ActionDef { Type = ActionType.Focus, Path = args[1], Title = args.Length > 2 ? args[2] : "", Launch = false };
                 return System.Threading.Tasks.Task.Run(() => WindowFocus.Bring(a)).Result ? 0 : 1;
             }
             return 2;
+        }
+
+        // ---------------------------------------------------------------- KI
+
+        /// <summary>Schreibt das Galerie-Rad „KI-Assistent“ aus den eingebauten Vorlagen, damit beide gleich bleiben.</summary>
+        static void AiWheel(string path)
+        {
+            Func<string, string> tpl = name => Array.Find(AiTemplates.All, t => t[0] == name)[1];
+            Func<string, string, string, string, string, bool, Slot> ai = (label, icon, color, template, output, local) => new Slot
+            {
+                Label = label, Icon = icon, Color = color,
+                Action = new ActionDef { Type = ActionType.Ai, Text = tpl(template), AiOutput = output, LocalOnly = local }
+            };
+            var w = new Wheel { Id = "ki01", Name = "KI-Assistent" };
+            w.Slots.Add(ai("Zusammenfassen", "v:ki", "#AC94FF", "Zusammenfassen", AiOutputs.Clipboard, false));
+            w.Slots.Add(ai("Ausführlicher", "v:zauberstab", "#62ABFF", "Ausführlicher formulieren", AiOutputs.Replace, false));
+            w.Slots.Add(ai("Korrigieren", "v:stift", "#5DD28B", "Korrigieren", AiOutputs.Replace, false));
+            w.Slots.Add(ai("Freundlicher", "v:mail", "#F5C542", "Freundlicher formulieren", AiOutputs.Replace, false));
+            w.Slots.Add(ai("Für Patienten", "v:person", "#45CFC6", "Für Patienten erklären", AiOutputs.Clipboard, true));
+            w.Slots.Add(ai("Untersuchungen", "v:arztbrief", "#FF8A3D", "Arztbrief: Untersuchungen", AiOutputs.Clipboard, true));
+            w.Slots.Add(ai("Diagnosen", "v:pille", "#FF7B7B", "Arztbrief: Diagnosen und Medikation", AiOutputs.Clipboard, true));
+            var fax = new ActionDef { Type = ActionType.Macro, StepDelayMs = 60 };
+            fax.Steps.Add(new ActionDef { Type = ActionType.Media, Media = "ocr" });
+            fax.Steps.Add(new ActionDef
+            {
+                Type = ActionType.Ai, Text = tpl("Arztbrief: Untersuchungen"), AiSource = AiSources.Clipboard, AiOutput = AiOutputs.Clipboard, LocalOnly = true
+            });
+            w.Slots.Add(new Slot { Label = "Fax auswerten", Icon = "v:texterkennung", Color = "#E8EAED", Action = fax });
+
+            var d = new Dictionary<string, object>();
+            d["version"] = 1;
+            d["galerie"] = new Dictionary<string, object>
+            {
+                { "autor", "Kyklos" },
+                { "beschreibung", "Markierten Text per KI zusammenfassen, ausformulieren, korrigieren oder Untersuchungen, Diagnosen und Medikation " +
+                                  "aus Arztbriefen ziehen – auch aus einem Fax per Texterkennung. Braucht einen KI-Anbieter, am besten Ollama im Praxisnetz; " +
+                                  "die medizinischen Segmente laufen nur lokal." },
+                { "programm", "Überall" }
+            };
+            d["wheels"] = new List<object> { w.ToJson() };
+            File.WriteAllText(path, Json.Write(d), new System.Text.UTF8Encoding(false));
+        }
+
+        static int AiFile(string[] args)
+        {
+            var p = new AiProvider { Kind = AiKinds.Ollama, Url = args[1], Model = args[2] };
+            string instruction = File.ReadAllText(args[3], System.Text.Encoding.UTF8), text = File.ReadAllText(args[4], System.Text.Encoding.UTF8);
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            string result;
+            try
+            {
+                var r = System.Threading.Tasks.Task.Run(() => AiClient.Complete(p, null, instruction, text, System.Threading.CancellationToken.None)).Result;
+                result = r.Text + (r.Truncated ? "\n[gekürzt]" : "");
+            }
+            catch (AggregateException ex)
+            {
+                var ai = ex.InnerException as AiException;
+                result = "FEHLER: " + (ai != null ? ai.Message + " – " + ai.Help : ex.InnerException.ToString());
+            }
+            File.WriteAllText(args[4] + ".out.txt", result + "\n\n[" + clock.Elapsed.TotalSeconds.ToString("0.0") + " s]", new System.Text.UTF8Encoding(false));
+            return result.StartsWith("FEHLER", StringComparison.Ordinal) || result.Length == 0 ? 1 : 0;
         }
 
         // ---------------------------------------------------------------- Texterkennung
@@ -106,6 +171,15 @@ namespace Kyklos
             stack.Arrange(new Rect(stack.DesiredSize));
             stack.UpdateLayout();
             Save(stack, (int)Math.Ceiling(stack.ActualWidth), (int)Math.Ceiling(stack.ActualHeight), Path.Combine(dir, "capture-toasts.png"));
+
+            var ai = new StackPanel { Background = new SolidColorBrush(Color.FromRgb(0xF2, 0xF3, 0xF5)) };
+            var violet = Palette.Parse("#AC94FF");
+            foreach (var sk in new[] { Skin.Graphit, Skin.Hell })
+                for (int state = 0; state < 4; state++) ai.Children.Add(CaptureToast.DevBuildAi(violet, sk, state));
+            ai.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            ai.Arrange(new Rect(ai.DesiredSize));
+            ai.UpdateLayout();
+            Save(ai, (int)Math.Ceiling(ai.ActualWidth), (int)Math.Ceiling(ai.ActualHeight), Path.Combine(dir, "ai-toasts.png"));
         }
 
         // ---------------------------------------------------------------- Speichern
@@ -481,6 +555,47 @@ namespace Kyklos
             win.Height = 800;
             sw.DevSelectWheel(0);
             Shot(win, Path.Combine(dir, "settings-scope-general.png"));
+
+            // KI-Anweisung: lokal beschränkt mit Ollama im Praxisnetz, dann mit einem externen Anbieter; die Anbieterliste
+            var local = new AiProvider { Kind = AiKinds.Ollama, Name = "Praxis-Server", Url = "192.168.178.20", Model = "qwen3:8b" };
+            var openai = new AiProvider { Kind = AiKinds.OpenAI, Model = "gpt-4.1-mini" };
+            host.Config.Settings.Providers.Add(local);
+            host.Config.Settings.Providers.Add(openai);
+            var aiSlot = host.Config.Wheels[0].Slots[7];
+            aiSlot.Label = "Untersuchungen";
+            aiSlot.Icon = "v:ki";
+            aiSlot.Color = "#AC94FF";
+            aiSlot.Action = new ActionDef { Type = ActionType.Ai, Text = AiTemplates.All[5][1], LocalOnly = true };
+            sw.DevSelectWheel(0);
+            sw.DevSelect(7);
+            Pump(400);
+            Shot(win, Path.Combine(dir, "settings-ai.png"));
+            sw.DevScrollInspector();
+            Shot(win, Path.Combine(dir, "settings-ai-end.png"));
+            aiSlot.Action.Provider = openai.Id;
+            sw.DevSelect(0);
+            sw.DevSelect(7);
+            sw.DevScrollInspector();
+            Pump(400);
+            Shot(win, Path.Combine(dir, "settings-ai-blocked.png"));
+            aiSlot.Action.LocalOnly = false;
+            sw.DevSelect(0);
+            sw.DevSelect(7);
+            sw.DevScrollInspector();
+            Pump(400);
+            Shot(win, Path.Combine(dir, "settings-ai-external.png"));
+            sw.DevShowAiProviders();
+            Pump(400);
+            Shot(win, Path.Combine(dir, "settings-ai-providers.png"));
+            sw.DevScrollGeneral();
+            Shot(win, Path.Combine(dir, "settings-ai-providers-end.png"));
+            host.Config.Settings.Providers.Clear();
+            sw.DevSelectWheel(0);
+            sw.DevSelect(0);
+            sw.DevSelect(7);
+            sw.DevScrollInspector();
+            Pump(400);
+            Shot(win, Path.Combine(dir, "settings-ai-none.png"));
             win.Close();
         }
 

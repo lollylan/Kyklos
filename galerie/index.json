@@ -16,6 +16,13 @@
                        "programm":  "Überall"
                    },
                    {
+                       "datei":  "ki-assistent.kyklos.json",
+                       "name":  "KI-Assistent",
+                       "autor":  "Kyklos",
+                       "beschreibung":  "Markierten Text per KI zusammenfassen, ausformulieren, korrigieren oder Untersuchungen, Diagnosen und Medikation aus Arztbriefen ziehen – auch aus einem Fax per Texterkennung. Braucht einen KI-Anbieter, am besten Ollama im Praxisnetz; die medizinischen Segmente laufen nur lokal.",
+                       "programm":  "Überall"
+                   },
+                   {
                        "datei":  "medien.kyklos.json",
                        "name":  "Medien",
                        "autor":  "Kyklos",

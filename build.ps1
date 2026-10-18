@@ -24,7 +24,7 @@ function Find-Csc {
 
 function Invoke-Csc([string]$out, [bool]$withIcon) {
     $fw = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
-    $refs = 'mscorlib.dll', 'System.dll', 'System.Core.dll', 'System.Xml.dll', 'System.Xaml.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll',
+    $refs = 'mscorlib.dll', 'System.dll', 'System.Core.dll', 'System.Net.Http.dll', 'System.Security.dll', 'System.Xml.dll', 'System.Xaml.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll',
             'WPF\WindowsBase.dll', 'WPF\PresentationCore.dll', 'WPF\PresentationFramework.dll'
     $cscArgs = @(
         '/nologo', '/target:winexe', '/platform:anycpu', '/optimize+', '/debug-', '/langversion:9.0', '/codepage:65001',

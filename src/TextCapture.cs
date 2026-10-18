@@ -874,12 +874,15 @@ namespace Kyklos
         readonly TextBlock _title, _meta, _body;
         readonly Skin _sk;
         readonly Color _hot;
-        readonly Native.POINT _at;
+        Native.POINT _at;
         readonly System.Windows.Threading.DispatcherTimer _timer = new System.Windows.Threading.DispatcherTimer();
         readonly bool _motion = SystemParameters.ClientAreaAnimation;
-        bool _shown;
+        bool _shown, _closed;
 
-        public CaptureToast(Color hot, Skin skin, Native.POINT at)
+        /// <summary>Geschlossen, etwa weil eine andere Meldung sie abgelöst hat – dann braucht es eine neue.</summary>
+        public bool IsClosed { get { return _closed; } }
+
+        public CaptureToast(Color hot, Skin skin, Native.POINT at, string title = "Kyklos – Texterkennung")
         {
             _hot = hot;
             _sk = TextCapture.Plate(skin);
@@ -913,7 +916,7 @@ namespace Kyklos
             };
             _win = new Window
             {
-                Title = "Kyklos – Texterkennung", WindowStyle = WindowStyle.None, AllowsTransparency = true, Background = Brushes.Transparent,
+                Title = title, WindowStyle = WindowStyle.None, AllowsTransparency = true, Background = Brushes.Transparent,
                 ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, ShowActivated = false, Topmost = true, Focusable = false,
                 SizeToContent = SizeToContent.WidthAndHeight, WindowStartupLocation = WindowStartupLocation.Manual, Left = -32000, Top = -32000,
                 FontFamily = new FontFamily("Segoe UI"), Content = _plate
@@ -938,7 +941,22 @@ namespace Kyklos
             Set("v:haken", TextCapture.Solid(_sk.Tint(_hot)), "Text kopiert", meta, preview, 2600, false);
         }
 
-        public void Fail(string title, string help) { Set("v:texterkennung", _sk.BText3, title, "", help, 4500); }
+        public void Fail(string title, string help) { Fail("v:texterkennung", title, help); }
+
+        public void Busy(string icon, string title, string meta) { Set(icon, _sk.BText2, title, meta, null, 0); }
+
+        public void Done(string icon, string title, string meta, string text, int ms)
+        {
+            var lines = text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+            string preview = string.Join("\n", lines.Take(3)) + (lines.Count > 3 ? " …" : "");
+            if (preview.Length > 240) preview = preview.Substring(0, 238).TrimEnd() + " …";
+            Set(icon, TextCapture.Solid(_sk.Tint(_hot)), title, meta, preview, ms);
+        }
+
+        public void Fail(string icon, string title, string help) { Set(icon, _sk.BText3, title, "", help, 6000); }
+
+        /// <summary>Die nächste Meldung erscheint an dieser Stelle (physische Pixel).</summary>
+        public void MoveTo(Native.POINT at) { _at = at; }
 
         void Set(string icon, Brush iconBrush, string title, string meta, string body, int ms, bool wrap = true)
         {
@@ -997,6 +1015,7 @@ namespace Kyklos
 
         void Close()
         {
+            _closed = true;
             _timer.Stop();
             if (_current == this) _current = null;
             if (_win.IsVisible) _win.Close();
@@ -1011,6 +1030,20 @@ namespace Kyklos
             if (state == 0) t.Done(text, "4 Zeilen");
             else if (state == 1) t.Fail("Kein Text erkannt", "Den Ausschnitt größer zoomen und noch einmal markieren.");
             else t.Busy();
+            t._timer.Stop();
+            t._win.Content = null;
+            return t._plate;
+        }
+
+        internal static Border DevBuildAi(Color hot, Skin skin, int state)
+        {
+            var t = new CaptureToast(hot, skin, new Native.POINT(), "Kyklos – KI");
+            t._shown = true;
+            if (state == 0) t.Busy("v:ki", "KI arbeitet …", "Praxis-Server");
+            else if (state == 1) t.Done("v:haken", "Fertig · mit Strg+V einfügen", "7 s",
+                                        "EKG: Sinusrhythmus, 72/min, ST-Senkungen V4–V6\nLabor: Troponin T 312 ng/l, Kreatinin 1,1 mg/dl\nHerzkatheter (04.10.): RIVA-Stenose 90 %, DES-Implantation", 0);
+            else if (state == 2) t.Fail("v:ki", "Nur lokal erlaubt", "Diese Anweisung ist für Patientendaten gedacht, „OpenAI (ChatGPT)“ ist aber extern. Wähle einen Ollama-Anbieter im eigenen Netz.");
+            else t.Done("v:haken", "In der Zwischenablage", "12 s · Fenster gewechselt", "Nicht eingefügt, weil inzwischen ein anderes Feld aktiv ist. Mit Strg+V einfügen.", 0);
             t._timer.Stop();
             t._win.Content = null;
             return t._plate;

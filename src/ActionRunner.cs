@@ -230,6 +230,14 @@ namespace Kyklos
             finally { Gate.Release(); }
         }
 
+        /// <summary>Für Eingaben, die später kommen (KI-Ergebnis): reiht sich hinter laufende Aktionen ein.</summary>
+        static async Task Exclusive(Func<Task> work)
+        {
+            await Gate.WaitAsync();
+            try { await work(); }
+            finally { Gate.Release(); }
+        }
+
         /// <returns>false, wenn ein Makro hier abbrechen soll.</returns>
         static async Task<bool> Run(ActionDef a, Settings st, Slot origin, int depth)
         {
@@ -263,6 +271,8 @@ namespace Kyklos
                 case ActionType.Click:
                     await KeySender.Click(a.X, a.Y, a.Button);
                     break;
+                case ActionType.Ai:
+                    return await AiRunner.Run(a, st, origin, depth > 0, Exclusive);
                 case ActionType.Focus:
                     if (await WindowFocus.Bring(a)) break;
                     System.Media.SystemSounds.Exclamation.Play();

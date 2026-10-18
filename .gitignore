@@ -5,6 +5,8 @@ dist/
 # Persönliche Konfiguration und Protokolle
 Kyklos.json*
 Shortcut.json*
+Kyklos.keys
+*.keys
 *.log
 
 # Archive und Sichtprüfungs-Bilder aus der Entwicklung

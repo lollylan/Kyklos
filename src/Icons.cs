@@ -74,7 +74,8 @@ namespace Kyklos
             new[] { "v:stift", "Schreiben" }, new[] { "v:kopieren", "Kopieren" }, new[] { "v:einfuegen", "Einfügen" }, new[] { "v:auswahl", "Auswahl" },
             new[] { "v:ausschnitt", "Ausschnitt" }, new[] { "v:texterkennung", "Text erkennen" }, new[] { "v:suche", "Suchen" }, new[] { "v:haken", "Erledigt" }, new[] { "v:ordner", "Ordner" },
             new[] { "v:mail", "E-Mail" }, new[] { "v:globus", "Web" }, new[] { "v:rechner", "Rechner" }, new[] { "v:werkzeug", "Werkzeug" },
-            new[] { "v:schloss", "Sperren" }, new[] { "v:blitz", "Makro" }, new[] { "v:wiedergabe", "Wiedergabe" }, new[] { "v:plus", "Plus" }
+            new[] { "v:schloss", "Sperren" }, new[] { "v:blitz", "Makro" }, new[] { "v:ki", "KI" }, new[] { "v:zauberstab", "Umformulieren" },
+            new[] { "v:wiedergabe", "Wiedergabe" }, new[] { "v:plus", "Plus" }
         };
 
         public static readonly string[][] General =
@@ -234,6 +235,8 @@ namespace Kyklos
             { "werkzeug", "M14.7 6.3 a1 1 0 0 0 0 1.4 l1.6 1.6 a1 1 0 0 0 1.4 0 l3.77 -3.77 a6 6 0 0 1 -7.94 7.94 l-6.91 6.91 a2.12 2.12 0 0 1 -3 -3 l6.91 -6.91 a6 6 0 0 1 7.94 -7.94 l-3.76 3.76 z" },
             { "schloss", "M5 11 h14 a2 2 0 0 1 2 2 v7 a2 2 0 0 1 -2 2 H5 a2 2 0 0 1 -2 -2 v-7 a2 2 0 0 1 2 -2 z M7 11 V7 a5 5 0 0 1 10 0 v4" },
             { "blitz", "M13 2 L3 14 h9 l-1 8 l10 -12 h-9 l1 -8 z" },
+            { "ki", "M 11.017 2.814 a 1 1 0 0 1 1.966 0 l 1.051 5.558 a 2 2 0 0 0 1.594 1.594 l 5.558 1.051 a 1 1 0 0 1 0 1.966 l -5.558 1.051 a 2 2 0 0 0 -1.594 1.594 l -1.051 5.558 a 1 1 0 0 1 -1.966 0 l -1.051 -5.558 a 2 2 0 0 0 -1.594 -1.594 l -5.558 -1.051 a 1 1 0 0 1 0 -1.966 l 5.558 -1.051 a 2 2 0 0 0 1.594 -1.594 z M 20 2 v 4 M 22 4 h -4 M 6 20 A 2 2 0 1 1 2 20 A 2 2 0 1 1 6 20 Z" }, // lucide:sparkles
+            { "zauberstab", "M 21.64 3.64 l -1.28 -1.28 a 1.21 1.21 0 0 0 -1.72 0 L 2.36 18.64 a 1.21 1.21 0 0 0 0 1.72 l 1.28 1.28 a 1.2 1.2 0 0 0 1.72 0 L 21.64 5.36 a 1.2 1.2 0 0 0 0 -1.72 M 14 7 l 3 3 M 5 6 v 4 M 19 14 v 4 M 10 2 v 2 M 7 8 H 3 M 21 16 h -4 M 11 3 H 9" }, // lucide:wand-sparkles
             { "wiedergabe", "M6 3 l14 9 l-14 9 z" },
             { "plus", "M5 12 h14 M12 5 v14" }
         };

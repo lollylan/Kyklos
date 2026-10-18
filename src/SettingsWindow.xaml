@@ -271,6 +271,35 @@
                 <TextBlock Style="{StaticResource Help}"
                            Text="Das Unterrad enthält danach eine Kopie. Auslöser und Programmzuordnung des Rads entfallen."/>
               </StackPanel>
+
+              <StackPanel x:Name="PAi" Margin="0,10,0,0">
+                <ComboBox x:Name="AiTemplateBox" Tag="Vorlage einsetzen …"/>
+                <TextBox x:Name="AiPrompt" Style="{StaticResource TextArea}" Height="168" Margin="0,8,0,0"
+                         Tag="Was soll die KI mit dem Text tun?"/>
+                <TextBlock Style="{StaticResource Help}"
+                           Text="Kyklos ergänzt jede Anweisung: nur das Ergebnis ausgeben, ohne Einleitung und Markdown, nichts erfinden. Das Ergebnis immer gegenlesen."/>
+                <TextBlock Text="Text holen" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="AiSourceBox"/>
+                <TextBlock Text="Ergebnis" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="AiOutputBox"/>
+                <TextBlock x:Name="AiOutputHelp" Style="{StaticResource Help}"/>
+                <TextBlock Text="KI-Anbieter" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="AiProviderBox"/>
+                <CheckBox x:Name="AiLocalSwitch" Style="{StaticResource Switch}" Margin="0,14,0,0">
+                  <StackPanel>
+                    <TextBlock Text="Nur lokal ausführen"/>
+                    <TextBlock Style="{StaticResource Help}" Margin="0,3,0,0"
+                               Text="Für Patientendaten. Die Anweisung läuft dann nie über einen externen Anbieter, auch nicht aus Versehen."/>
+                  </StackPanel>
+                </CheckBox>
+                <Border x:Name="AiNote" CornerRadius="6" Padding="12,10,12,12" Margin="0,14,0,0">
+                  <StackPanel>
+                    <TextBlock x:Name="AiNoteTitle" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="AiNoteText" TextWrapping="Wrap" LineHeight="18" Margin="0,3,0,0"/>
+                    <Button x:Name="AiSetupBtn" Style="{StaticResource Btn}" Content="KI-Anbieter einrichten …" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
             </StackPanel>
           </ScrollViewer>
         </DockPanel>
@@ -339,6 +368,12 @@
             </StackPanel>
           </DockPanel>
         </Border>
+
+        <TextBlock x:Name="AiSection" Text="KI-Anbieter" Style="{StaticResource SectionTitle}"/>
+        <TextBlock Style="{StaticResource Help}" Margin="0,0,0,2"
+                   Text="Segmente mit einer KI-Anweisung schicken markierten Text an ein Sprachmodell. Ollama läuft auf diesem PC oder auf einem Rechner im Praxisnetz – die Texte verlassen die Praxis nicht."/>
+        <StackPanel x:Name="ProviderHost"/>
+        <ComboBox x:Name="AddProviderBox" Tag="Anbieter hinzufügen …" HorizontalAlignment="Left" MinWidth="260" Margin="0,14,0,0"/>
 
         <TextBlock Text="System" Style="{StaticResource SectionTitle}"/>
         <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,14">
