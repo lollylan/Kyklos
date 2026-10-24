@@ -37,6 +37,13 @@
                        "programm":  "Praxisverwaltungssystem"
                    },
                    {
+                       "datei":  "versorgungsamt.kyklos.json",
+                       "name":  "Versorgungsamt",
+                       "autor":  "Kyklos",
+                       "beschreibung":  "Die üblichen Fragen des Versorgungsamts als Überschriften, nach Organsystem in Unterrädern sortiert: Bewegung, Nerven, Psyche, Herz und Gefäße, Stoffwechsel, Niere und Blase, Tumor und Blut. Frage einfügen, Antwort darunter schreiben.",
+                       "programm":  "Überall"
+                   },
+                   {
                        "datei":  "windows.kyklos.json",
                        "name":  "Windows",
                        "autor":  "Kyklos",

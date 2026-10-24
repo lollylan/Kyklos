@@ -1,0 +1,329 @@
+{
+  "version": 1,
+  "galerie": {
+    "autor": "Kyklos",
+    "beschreibung": "Die üblichen Fragen des Versorgungsamts als Überschriften, nach Organsystem in Unterrädern sortiert: Bewegung, Nerven, Psyche, Herz und Gefäße, Stoffwechsel, Niere und Blase, Tumor und Blut. Frage einfügen, Antwort darunter schreiben.",
+    "programm": "Überall"
+  },
+  "wheels": [
+    {
+      "id": "vamt0001",
+      "name": "Versorgungsamt",
+      "slots": [
+        {
+          "label": "Allgemein",
+          "icon": "v:person",
+          "color": "#E8EAED",
+          "action": {
+            "type": "text",
+            "text": "Aktueller Allgemeinzustand und Beschwerdebild?\n"
+          }
+        },
+        {
+          "label": "Bewegung",
+          "icon": "v:knie",
+          "color": "#45CFC6",
+          "action": {
+            "type": "folder",
+            "slots": [
+              {
+                "label": "Gehen",
+                "icon": "v:gehstock",
+                "color": "#45CFC6",
+                "action": {
+                  "type": "text",
+                  "text": "Gehbehinderung: Werden im Wohnbereich oder außer Haus ein Gehstock, Unterarmstütze(n) oder ein Rollstuhl benutzt? Welche Gehstreckenbegrenzung wird angegeben?\n"
+                }
+              },
+              {
+                "label": "Wirbelsäule",
+                "icon": "v:wirbelsaeule",
+                "color": "#45CFC6",
+                "action": {
+                  "type": "text",
+                  "text": "Wirbelsäulenerkrankung: Bisheriger Verlauf: Häufigkeit und Dauer der Beschwerden im Laufe eines Jahres, Bewegungsausmaß (Ott, Schober, Finger-Boden-Abstand), sensible und motorische Störungen, Reflexstatus und Lasègue, Ergebnisse technischer Zusatzuntersuchungen?\n"
+                }
+              },
+              {
+                "label": "Gelenke",
+                "icon": "v:knie",
+                "color": "#45CFC6",
+                "action": {
+                  "type": "text",
+                  "text": "Gelenkerkrankung: Bewegungseinschränkung (z. B. Messwerte nach der Neutral-0-Methode)? Häufigkeit und Ausprägung von Gelenkschwellungen und Ergussbildungen (Punktionen?), Gelenkdeformierungen und Muskelatrophien, Instabilitäten, technische und laborchemische Zusatzuntersuchungen?\n"
+                }
+              },
+              {
+                "label": "Rheuma",
+                "icon": "v:hand",
+                "color": "#45CFC6",
+                "action": {
+                  "type": "text",
+                  "text": "Rheumatische Erkrankung: Lokalisation und Anzahl der befallenen Gelenke? Häufigkeit und Ausprägung von Gelenkschwellungen und Ergussbildungen, Bewegungseinschränkungen bzw. Gelenkdeformierungen? Laborchemische und apparative Untersuchungsbefunde (Bildgebung)? Diagnose? Therapie?\n"
+                }
+              },
+              {
+                "label": "Schmerz",
+                "icon": "v:blitz",
+                "color": "#45CFC6",
+                "action": {
+                  "type": "text",
+                  "text": "Chronisches Schmerzsyndrom: Betroffene Bereiche? Dauer? Begleitsymptome? Therapie? Medikation?\n"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "label": "Nerven",
+          "icon": "v:gehirn",
+          "color": "#AC94FF",
+          "action": {
+            "type": "folder",
+            "slots": [
+              {
+                "label": "Schlaganfall",
+                "icon": "v:gehirn",
+                "color": "#AC94FF",
+                "action": {
+                  "type": "text",
+                  "text": "Verbliebene Folgen des Schlaganfalls: Einschränkungen im Bereich des Bewegungsapparates (grobe Kraft, Handfunktion, Gehfähigkeit, Gehstrecke, Gleichgewicht)? Zerebrale Einschränkungen (Konzentrations-, Merkfähigkeit, hirnorganische Persönlichkeitsveränderungen, Orientierung)? Sonstige Einschränkungen (Seh-, Sprachstörungen, Blasen-, Mastdarmstörungen)?\n"
+                }
+              },
+              {
+                "label": "Nervensystem",
+                "icon": "v:reflexhammer",
+                "color": "#AC94FF",
+                "action": {
+                  "type": "text",
+                  "text": "Nervensystem: Funktionsstörungen der Extremitäten (Gebrauchsfähigkeit der Hände, Gehfähigkeit), grobe Kraft, Bewegungskoordination, Muskelatrophien, Gleichgewichtsstörungen, Sensibilitätsstörungen, Blasen- und Mastdarmstörungen, Seh- und Sprachstörungen, Psychosyndrom und ggf. Krankheitsverlauf?\n"
+                }
+              },
+              {
+                "label": "Neuropathie",
+                "icon": "v:fuss",
+                "color": "#AC94FF",
+                "action": {
+                  "type": "text",
+                  "text": "Polyneuropathie: Ausmaß der sensiblen und motorischen Ausfälle? Trophische Störungen? Schmerzsymptomatik?\n"
+                }
+              },
+              {
+                "label": "Anfälle",
+                "icon": "v:blitz",
+                "color": "#AC94FF",
+                "action": {
+                  "type": "text",
+                  "text": "Zerebrale Anfälle: Art, Häufigkeit (letzter Anfall?), Tageszeit der Anfälle, Therapie?\n"
+                }
+              },
+              {
+                "label": "Demenz",
+                "icon": "v:senior",
+                "color": "#AC94FF",
+                "action": {
+                  "type": "text",
+                  "text": "Zerebralsklerose, hirnorganischer Abbauprozess, Demenz: Störungen der Konzentrationsfähigkeit oder des Gedächtnisses, hirnorganische Persönlichkeitsveränderungen, Orientierungsstörungen, Affektverhalten?\n"
+                }
+              },
+              {
+                "label": "Migräne",
+                "icon": "v:schaedel",
+                "color": "#AC94FF",
+                "action": {
+                  "type": "text",
+                  "text": "Migräne: Häufigkeit, Dauer, Begleiterscheinungen, Therapie?\n"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "label": "Psyche",
+          "icon": "v:stimmung",
+          "color": "#62ABFF",
+          "action": {
+            "type": "folder",
+            "slots": [
+              {
+                "label": "Psyche",
+                "icon": "v:stimmung",
+                "color": "#62ABFF",
+                "action": {
+                  "type": "text",
+                  "text": "Psychische Erkrankung: Symptomatik, Befund, soziale Eingliederungs- und Anpassungsschwierigkeiten, Berufstätigkeit, Schulbesuch (bei Jugendlichen und jungen Erwachsenen), Fördermaßnahmen (bei Kindern), Verlauf der Erkrankung, ggf. Dauer, Ausprägung und Häufigkeit der Erkrankungsphasen (von wann bis wann dauerte die letzte Phase?), Therapie (Art und Ausmaß? Häufigkeit der Vorstellung?)? Bei genehmigter Psychotherapie Antrags- und Verlaufsbericht sowie ggf. Berichte über stationäre Maßnahmen beifügen.\n"
+                }
+              },
+              {
+                "label": "Sucht",
+                "icon": "v:alkohol",
+                "color": "#62ABFF",
+                "action": {
+                  "type": "text",
+                  "text": "Suchterkrankung: Verlauf, soziale Beeinträchtigung, Folgekrankheiten (internistische und neurologische Störungen), psychopathologischer Befund (z. B. Delir, Wernicke-Korsakow-Syndrom) und Therapie (Medikamente, Entwöhnungsbehandlung, ggf. wie oft, Nachsorge)?\n"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "label": "Herz & Gefäße",
+          "icon": "v:herz",
+          "color": "#FF7B7B",
+          "action": {
+            "type": "folder",
+            "slots": [
+              {
+                "label": "Herz",
+                "icon": "v:herzpuls",
+                "color": "#FF7B7B",
+                "action": {
+                  "type": "text",
+                  "text": "Herz-Kreislauf-Erkrankung: Kardiale Leistungsbeeinträchtigung in Ruhe bzw. bei welchem Grad der Belastung? EKG-, Echokardiographie-, Herzkatheter- und Röntgen-Thorax-Befunde?\n"
+                }
+              },
+              {
+                "label": "Blutdruck",
+                "icon": "v:blutdruck",
+                "color": "#FF7B7B",
+                "action": {
+                  "type": "text",
+                  "text": "Bluthochdruck: Aktuelle Messwerte? Therapie? Nachweis von sekundären Organschäden?\n"
+                }
+              },
+              {
+                "label": "pAVK",
+                "icon": "v:puls",
+                "color": "#FF7B7B",
+                "action": {
+                  "type": "text",
+                  "text": "Arterielle Verschlusskrankheit: Schmerzfreie Gehstrecke? Ruheschmerzen? Trophische Störungen? Kopie apparativer Untersuchungsergebnisse (z. B. Doppler, Angiographie) beifügen.\n"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "label": "Lunge",
+          "icon": "v:lunge",
+          "color": "#62ABFF",
+          "action": {
+            "type": "text",
+            "text": "Lungenfunktionsbeeinträchtigung: Atemnot in Ruhe bzw. bei welchem Grad der Belastung? Kopie der Lungenfunktionsmesswerte und Blutgaswerte beifügen.\n"
+          }
+        },
+        {
+          "label": "Stoffwechsel",
+          "icon": "v:tropfen",
+          "color": "#F5C542",
+          "action": {
+            "type": "folder",
+            "slots": [
+              {
+                "label": "Diabetes",
+                "icon": "v:tropfen",
+                "color": "#F5C542",
+                "action": {
+                  "type": "text",
+                  "text": "Diabetes: Therapie: orale Antidiabetika (welche)? Insulin: Anzahl der Insulininjektionen pro Tag? Feststehende Insulindosierung oder jeweils Dosisanpassung erforderlich? Insulinpumpentherapie? HbA1c-Werte, schwere Hypoglykämien? Spätkomplikationen?\n"
+                }
+              },
+              {
+                "label": "Schilddrüse",
+                "icon": "v:schilddruese",
+                "color": "#F5C542",
+                "action": {
+                  "type": "text",
+                  "text": "Schilddrüsenerkrankung: Art, Therapie und Komplikationen?\n"
+                }
+              },
+              {
+                "label": "Verdauung",
+                "icon": "v:darm",
+                "color": "#F5C542",
+                "action": {
+                  "type": "text",
+                  "text": "Verdauungsbeschwerden: Art und Ausmaß? Körpergewicht und -größe? Laborbefunde? Apparative Untersuchungsergebnisse?\n"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "label": "Niere & Blase",
+          "icon": "v:niere",
+          "color": "#5DD28B",
+          "action": {
+            "type": "folder",
+            "slots": [
+              {
+                "label": "Niere",
+                "icon": "v:niere",
+                "color": "#5DD28B",
+                "action": {
+                  "type": "text",
+                  "text": "Nierenerkrankung: Art, Schweregrad und Therapie? Komplikationen (z. B. Anämie, Bluthochdruck, Ödeme)? Laborchemische und apparative Untersuchungsbefunde?\n"
+                }
+              },
+              {
+                "label": "Inkontinenz",
+                "icon": "v:blase",
+                "color": "#5DD28B",
+                "action": {
+                  "type": "text",
+                  "text": "Harninkontinenz: Schweregrad? Therapie?\n"
+                }
+              },
+              {
+                "label": "Prostata",
+                "icon": "v:maennlich",
+                "color": "#5DD28B",
+                "action": {
+                  "type": "text",
+                  "text": "Prostataleiden: Ausmaß der Harnentleerungsstörungen? Infekte? Restharn (in ml)?\n"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "label": "Tumor & Blut",
+          "icon": "v:mikroskop",
+          "color": "#FF8A3D",
+          "action": {
+            "type": "folder",
+            "slots": [
+              {
+                "label": "Tumor",
+                "icon": "v:mikroskop",
+                "color": "#FF8A3D",
+                "action": {
+                  "type": "text",
+                  "text": "Tumorerkrankung: Zeitpunkt der Diagnosestellung und Art des Tumors? Tumorstadium (TNM), Histologie und Therapie (Operation, Bestrahlung, Chemotherapie)? Kurative/palliative Behandlung?\n"
+                }
+              },
+              {
+                "label": "Blut & Lymphe",
+                "icon": "v:labor",
+                "color": "#FF8A3D",
+                "action": {
+                  "type": "text",
+                  "text": "Blut-/Lymphknotenerkrankung: Art/Stadium bei Erstdiagnose (Zeitpunkt?)? Therapiemaßnahmen/Verlauf der Erkrankung, letzter Stagingbefund und aktuelles Beschwerdebild?\n"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "label": "Gehör",
+          "icon": "v:ohr",
+          "color": "#45CFC6",
+          "action": {
+            "type": "text",
+            "text": "Schwerhörigkeit: Kopie der Ton-/Sprachaudiogrammbefunde beifügen. Tinnitus? Schwindel?\n"
+          }
+        }
+      ]
+    }
+  ]
+}
