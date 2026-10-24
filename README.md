@@ -71,7 +71,7 @@ sofort.
 | Aktion | Was passiert |
 |---|---|
 | Text einfügen | Fügt den Text über die Zwischenablage ein (schnell, sicher bei Umlauten und langen Texten) oder tippt ihn Zeichen für Zeichen, falls ein Programm Einfügen sperrt |
-| Tastenkombination | Sendet z. B. Strg + S |
+| Tastenkombination | Sendet z. B. Strg + S oder Esc |
 | Programm, Datei oder Ordner öffnen | Auch mit Parametern; `%USERPROFILE%` und andere Umgebungsvariablen werden aufgelöst |
 | Website öffnen | Im Standardbrowser |
 | Medien und System | Wiedergabe, Lautstärke, Bildschirmausschnitt, [Text erkennen](#text-erkennen), Desktop anzeigen, PC sperren |
