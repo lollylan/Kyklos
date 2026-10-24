@@ -1903,8 +1903,11 @@ namespace Kyklos
             if (same) return;      // zweiter Klick bricht ab
             _recBtn = b;
             _recOld = b.Content;
-            b.Content = allowMouse ? "Taste oder Maus-Seitentaste drücken …" : "Kombination drücken …";
+            // Ein Auslöser bricht mit Esc ab (Esc schließt das Rad). Eine zu sendende Kombination darf Esc sein,
+            // dort bricht ein zweiter Klick auf die Schaltfläche ab.
+            b.Content = allowMouse ? "Taste oder Maus-Seitentaste drücken …" : "Kombination drücken … (Klick bricht ab)";
             InputHook.RecordAllowMouse = allowMouse;
+            InputHook.RecordAllowEscape = !allowMouse;
             InputHook.RecordCallback = c =>
             {
                 if (_recBtn != b) return;

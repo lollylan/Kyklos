@@ -24,6 +24,7 @@ namespace Kyklos
         /// <summary>Ist gesetzt, solange ein Feld in den Einstellungen auf eine Taste wartet. null als Ergebnis = abgebrochen.</summary>
         public static volatile Action<Chord> RecordCallback;
         public static volatile bool RecordAllowMouse;
+        public static volatile bool RecordAllowEscape;     // Esc wird aufgenommen statt abzubrechen (zu sendende Kombinationen)
         public static volatile bool Paused;
 
         static volatile Binding[] _bindings = new Binding[0];
@@ -171,7 +172,7 @@ namespace Kyklos
                 if (KeyNames.IsModifier(vk)) return false;
                 RecordCallback = null;
                 Eat(vk);
-                Chord c = vk == Native.VK_ESCAPE ? null : Capture(false, vk);
+                Chord c = vk == Native.VK_ESCAPE && !RecordAllowEscape ? null : Capture(false, vk);
                 Post(() => rec(c));
                 return true;
             }
