@@ -59,6 +59,9 @@ sofort.
 - **Rad duplizieren** legt eine Kopie mit allen Segmenten, Unterrädern und Makros an – ohne Auslöser, damit sie eine
   eigene Taste bekommt. Praktisch für leicht abgewandelte Räder, etwa eins pro Kollegin am selben PC.
 - **Segmente**: 2 bis 12 pro Rad. Ziehen vertauscht zwei Segmente, die Pfeile im Inspektor verschieben eins.
+  Strg+C kopiert das gewählte Segment samt Unterrad, Strg+V setzt es an der Stelle eines anderen ein – auch in einem
+  anderen Rad (dieselben Knöpfe stehen oben im Inspektor). Das Segment liegt dabei als Text in der Zwischenablage und
+  lässt sich so auch per Mail oder Chat weitergeben.
 - **Beschriftung, Symbol, Farbe**: Text und/oder Symbol aus der Auswahl oder ein eigenes Bild (PNG, JPG, ICO … oder das
   Symbol einer Exe). Bilder werden verkleinert in der Konfiguration abgelegt.
 - **Aktion testen** startet nach 3 Sekunden – in dieser Zeit ins Zielfeld klicken.

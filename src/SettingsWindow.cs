@@ -44,7 +44,7 @@ namespace Kyklos
         readonly Button SampleKeep;
         readonly Grid EditorPanel;
         readonly ScrollViewer GeneralPanel;
-        readonly Button AddWheel, ImportWheel, OnlineWheel, CloneWheel, ExportWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, IconBtn, ImageBtn, IconClear,
+        readonly Button AddWheel, ImportWheel, OnlineWheel, CloneWheel, ExportWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, CopySlot, PasteSlot, IconBtn, ImageBtn, IconClear,
                         KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn, GapPickBtn,
                         VariantBtn, AlternBtn, FolderFromFile, FolderFromWeb;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
@@ -103,7 +103,7 @@ namespace Kyklos
             AddTrigger2 = F<Button>("AddTrigger2"); Trigger2Btn = F<Button>("Trigger2Btn"); Trigger2Clear = F<Button>("Trigger2Clear");
             TriggerGroup = F<StackPanel>("TriggerGroup"); Trigger2Group = F<StackPanel>("Trigger2Group");
             AddSlot = F<Button>("AddSlot"); TestBtn = F<Button>("TestBtn"); RemoveSlot = F<Button>("RemoveSlot");
-            MoveCcw = F<Button>("MoveCcw"); MoveCw = F<Button>("MoveCw"); IconBtn = F<Button>("IconBtn"); ImageBtn = F<Button>("ImageBtn");
+            MoveCcw = F<Button>("MoveCcw"); MoveCw = F<Button>("MoveCw"); CopySlot = F<Button>("CopySlot"); PasteSlot = F<Button>("PasteSlot"); IconBtn = F<Button>("IconBtn"); ImageBtn = F<Button>("ImageBtn");
             IconClear = F<Button>("IconClear"); KeysBtn = F<Button>("KeysBtn"); BrowseBtn = F<Button>("BrowseBtn");
             OpenFolderBtn = F<Button>("OpenFolderBtn"); OpenConfigDir = F<Button>("OpenConfigDir"); ExportBtn = F<Button>("ExportBtn");
             ImportBtn = F<Button>("ImportBtn"); QuitBtn = F<Button>("QuitBtn");
@@ -146,6 +146,8 @@ namespace Kyklos
             _host.Saved += OnSaved;
             _host.SaveFailed += OnSaveFailed;
             _w.Deactivated += (s, e) => CancelRecord();
+            _w.Activated += (s, e) => UpdatePaste();
+            _w.PreviewKeyDown += OnSlotKey;
             _w.IsVisibleChanged += (s, e) => UpdateTicker();
             _w.Closed += (s, e) =>
             {
@@ -169,6 +171,15 @@ namespace Kyklos
         public void DevSelect(int i) { SelectSlot(i); }
         public void DevEnterFolder() { EnterFolder(Cur); }
         public void DevCloneWheel() { CloneWheel.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); }
+        /// <summary>Kopiert Segment i, hängt ein freies an und fügt es dort ein. Liefert, ob die Kopie gleich ist.</summary>
+        public bool DevCopyPaste(int i)
+        {
+            SelectSlot(i);
+            CopySlot.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            AddSlot.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            PasteSlot.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            return Json.Write(Cur.ToJson()) == Json.Write(CurrentSlots[i].ToJson()) && !ReferenceEquals(Cur, CurrentSlots[i]);
+        }
         public void DevHome() { ShowEditor(); SelectWheel(Cfg.Wheels[0]); }
         public void DevSelectWheel(int i) { ShowEditor(); RebuildWheelList(); SelectWheel(Cfg.Wheels[i]); }
         public void DevShowAiProviders() { LoadGeneral(); ShowAiProviders(); }
@@ -418,10 +429,14 @@ namespace Kyklos
                 Preview.GazeTarget = new Vector(p.X - Preview.ActualWidth / 2, p.Y - Preview.ActualHeight / 2);
             };
             _w.MouseLeave += (s, e) => Preview.GazeTarget = new Vector(0, 0);
+            // Die Vorschau nimmt beim Anklicken den Fokus, damit Strg+C/Strg+V das Segment meinen und nicht das letzte Textfeld.
+            Preview.Focusable = true;
+            Preview.FocusVisualStyle = null;
             Preview.MouseLeftButtonDown += (s, e) =>
             {
                 int i = Preview.HitTest(e.GetPosition(Preview));
                 if (i < 0) return;
+                Preview.Focus();
                 SelectSlot(i);
                 if (e.ClickCount == 2 && Cur.Action.Type == ActionType.Folder) { EnterFolder(Cur); return; }
                 _dragFrom = i;
@@ -443,6 +458,8 @@ namespace Kyklos
 
             MoveCcw.Click += (s, e) => MoveSlot(-1);
             MoveCw.Click += (s, e) => MoveSlot(1);
+            CopySlot.Click += (s, e) => CopyCur();
+            PasteSlot.Click += (s, e) => PasteCur();
 
             LabelBox.TextChanged += (s, e) => { if (_loading) return; Cur.Label = LabelBox.Text; SlotChanged(false); };
             IconBtn.Click += (s, e) => { IconPopup.PlacementTarget = IconBtn; IconPopup.IsOpen = true; };
@@ -1200,7 +1217,85 @@ namespace Kyklos
             RemoveSlot.IsEnabled = n > Wheel.MinSlots;
             RemoveSlot.Content = "Segment entfernen";
             RemoveSlot.Tag = null;
+            CopySlot.IsEnabled = !slot.IsEmpty;
+            UpdatePaste();
             _loading = was;
+        }
+
+        // ---------------------------------------------------------------- Segment kopieren und einfügen
+
+        // Ein kopiertes Segment liegt als JSON-Text in der Zwischenablage – so lässt es sich auch per Mail oder Chat weitergeben.
+        const string ClipKind = "kyklos-segment";
+
+        void CopyCur()
+        {
+            if (Cur.IsEmpty) return;
+            var d = new Dictionary<string, object>();
+            d["kind"] = ClipKind;
+            d["version"] = 1;
+            d["slot"] = Cur.ToJson();
+            try { Clipboard.SetText(Json.Write(d)); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(_w, "Die Zwischenablage ist gerade belegt:\n\n" + ex.Message, "Kyklos", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            UpdatePaste();
+            Status.Text = "„" + Cur.DisplayLabel + "“ kopiert – mit Strg+V auf einem anderen Segment einfügen.";
+        }
+
+        /// <summary>Das Segment aus der Zwischenablage, oder null, wenn dort keins liegt.</summary>
+        static Slot ClipSlot()
+        {
+            try
+            {
+                string t = ClipText().Trim();
+                if (!t.StartsWith("{") || t.IndexOf(ClipKind, StringComparison.Ordinal) < 0) return null;
+                var d = Json.Parse(t) as Dictionary<string, object>;
+                if (d == null || Json.S(d, "kind") != ClipKind) return null;
+                var sd = Json.O(d, "slot");
+                return sd == null ? null : Slot.FromJson(sd);
+            }
+            catch (Exception) { return null; }
+        }
+
+        /// <summary>Text der Zwischenablage. Andere Programme halten sie nach einer Änderung oft kurz offen – dann ein paar Versuche.</summary>
+        static string ClipText()
+        {
+            for (int i = 0; ; i++)
+            {
+                try { return Clipboard.ContainsText() ? Clipboard.GetText() : ""; }
+                catch (System.Runtime.InteropServices.COMException) { if (i >= 4) throw; Thread.Sleep(25); }
+            }
+        }
+
+        void UpdatePaste() { PasteSlot.IsEnabled = _wheel != null && ClipSlot() != null; }
+
+        /// <summary>Ersetzt das gewählte Segment durch das kopierte; ein belegtes erst nach Rückfrage.</summary>
+        void PasteCur()
+        {
+            var slot = ClipSlot();
+            if (slot == null) { UpdatePaste(); return; }
+            CancelRecord();
+            if (!Cur.IsEmpty &&
+                MessageBox.Show(_w, "„" + Cur.DisplayLabel + "“ durch das kopierte Segment „" + slot.DisplayLabel + "“ ersetzen?",
+                                "Segment einfügen", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+            if (slot.Action.Type == ActionType.Folder) Wheel.Normalize(slot.Action.Slots);
+            CurrentSlots[_sel] = slot;
+            LoadStage();
+            LoadInspector();
+            Touch();
+        }
+
+        /// <summary>Strg+C / Strg+V kopieren und fügen Segmente ein, solange kein Eingabefeld den Fokus hat.</summary>
+        void OnSlotKey(object sender, KeyEventArgs e)
+        {
+            if (Keyboard.Modifiers != ModifierKeys.Control || (e.Key != Key.C && e.Key != Key.V)) return;
+            if (_recBtn != null || EditorPanel.Visibility != Visibility.Visible) return;
+            var f = Keyboard.FocusedElement as DependencyObject;
+            if (f is TextBoxBase || f is PasswordBox || (f is ComboBox && ((ComboBox)f).IsEditable)) return;
+            e.Handled = true;
+            if (e.Key == Key.C) CopyCur(); else PasteCur();
         }
 
         static Visibility Vis(bool on) { return on ? Visibility.Visible : Visibility.Collapsed; }

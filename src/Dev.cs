@@ -536,6 +536,8 @@ namespace Kyklos
             Shot(win, Path.Combine(dir, "settings-trigger2.png"));
             sw.DevCloneWheel();
             Shot(win, Path.Combine(dir, "settings-clone.png"));
+            if (!sw.DevCopyPaste(0)) throw new InvalidOperationException("Kopiertes Segment weicht vom Original ab.");
+            Shot(win, Path.Combine(dir, "settings-paste.png"));
 
             // Programmabhängiges Rad: dieselbe Taste wie das erste, aber nur im Editor und im Browser
             var scoped = Wheel.FromJson(host.Config.Wheels[0].ToJson());

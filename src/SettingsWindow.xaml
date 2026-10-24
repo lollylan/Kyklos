@@ -145,7 +145,7 @@
         <StackPanel Grid.Row="2" Margin="32,0,32,18">
           <TextBlock x:Name="UsageHint" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
           <TextBlock Style="{StaticResource Help}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,4,0,0"
-                     Text="Segment anklicken, um es zu bearbeiten. Ziehen vertauscht zwei Segmente."/>
+                     Text="Segment anklicken, um es zu bearbeiten. Ziehen vertauscht zwei Segmente, Strg+C und Strg+V kopieren eins."/>
         </StackPanel>
       </Grid>
 
@@ -163,6 +163,13 @@
             <StackPanel Margin="24,22,24,24">
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                  <Button x:Name="CopySlot" Style="{StaticResource BtnIcon}" ToolTip="Segment kopieren (Strg+C)">
+                    <TextBlock Text="&#xE8C8;" Style="{StaticResource Glyph}" FontSize="13"/>
+                  </Button>
+                  <Button x:Name="PasteSlot" Style="{StaticResource BtnIcon}" Margin="0,0,8,0"
+                          ToolTip="Kopiertes Segment hier einfügen (Strg+V) – ersetzt dieses Segment">
+                    <TextBlock Text="&#xE77F;" Style="{StaticResource Glyph}" FontSize="13"/>
+                  </Button>
                   <Button x:Name="MoveCcw" Style="{StaticResource BtnIcon}" ToolTip="Gegen den Uhrzeigersinn verschieben">
                     <TextBlock Text="&#xE76B;" Style="{StaticResource Glyph}" FontSize="12"/>
                   </Button>
