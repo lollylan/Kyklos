@@ -48,8 +48,36 @@ namespace Kyklos
         static int MacroRec(string report)
         {
             IntPtr layout = Native.GetKeyboardLayout(0);
+            Func<List<ActionDef>, string> describe = steps =>
+            {
+                var lines = new List<string>();
+                foreach (var s in steps)
+                    lines.Add(s.Type == ActionType.Text ? "text:" + s.Text : s.Type == ActionType.Delay ? "pause:" + s.DelayMs : "keys:" + s.Keys.Display());
+                return string.Join(" | ", lines);
+            };
+            Func<int, string> k1 = vk => "keys:" + Chord.Key(vk).Display();
+
+            string asText = describe(RecordSample(layout, true));
+            string wantText = string.Join(" | ", new[] { "text:Hallo ü@", "pause:800", "keys:Tab", "keys:Strg + C", "text:x", "keys:Eingabe", "pause:500", "text:^" });
+            string asKeys = describe(RecordSample(layout, false));
+            string wantKeys = string.Join(" | ", new[]
+            {
+                "keys:Umschalt + H", k1('A'), k1('L'), k1('L'), k1('O'), "pause:900", k1(0x20), k1(0xBA), "keys:Strg + Alt + Q", k1(0xDC), k1('E'),
+                k1(Native.VK_BACK), "pause:800", "keys:Tab", "keys:Strg + C", k1('X'), "keys:Eingabe", "pause:500", k1(0xDC)
+            });
+            string split = describe(MacroRecorder.SplitText("Ab@ê\n", layout));
+            string wantSplit = string.Join(" | ", new[] { "keys:Umschalt + A", k1('B'), "keys:Strg + Alt + Q", "text:ê", "keys:Eingabe" });
+
+            File.WriteAllText(report, "Layout " + ((long)layout & 0xFFFF).ToString("X4") + Environment.NewLine +
+                                      "Text:      " + asText + Environment.NewLine + "Tasten:    " + asKeys + Environment.NewLine +
+                                      "Aufteilen: " + split + Environment.NewLine);
+            return asText == wantText && asKeys == wantKeys && split == wantSplit ? 0 : 1;
+        }
+
+        static List<ActionDef> RecordSample(IntPtr layout, bool lettersAsText)
+        {
             int time = 1000;
-            var rec = new MacroRecorder();
+            var rec = new MacroRecorder { LettersAsText = lettersAsText };
             Action<int, int, bool, bool, bool> key = (vk, after, shift, ctrl, altGr) =>
             {
                 time += after;
@@ -72,15 +100,7 @@ namespace Kyklos
             key('X', 100, false, false, false);
             key(Native.VK_RETURN, 100, false, false, false);
             key(0xDC, 500, false, false, false);         // Tottaste allein am Ende
-            var steps = rec.Finish();
-
-            var lines = new List<string>();
-            foreach (var s in steps)
-                lines.Add(s.Type == ActionType.Text ? "text:" + s.Text : s.Type == ActionType.Delay ? "pause:" + s.DelayMs : "keys:" + s.Keys.Display());
-            string got = string.Join(" | ", lines);
-            string want = string.Join(" | ", new[] { "text:Hallo ü@", "pause:800", "keys:Tab", "keys:Strg + C", "text:x", "keys:Eingabe", "pause:500", "text:^" });
-            File.WriteAllText(report, "Layout " + ((long)layout & 0xFFFF).ToString("X4") + ": " + got + Environment.NewLine);
-            return got == want ? 0 : 1;
+            return rec.Finish();
         }
 
         // ---------------------------------------------------------------- KI

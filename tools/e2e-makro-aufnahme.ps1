@@ -77,19 +77,32 @@ try {
   [U]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); Wait 40; [U]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Wait 400
   if ([U]::GetForegroundWindow() -ne $form.Handle) { throw 'Testfenster ist nicht im Vordergrund - nichts getippt.' }
 
-  TypeWord 'Hallo'; Tap 0x20; TypeWord 'Weltt'; Tap 0x08      # Tippfehler mit Rücktaste korrigiert
+  # Standard: jeder Buchstabe ein eigener Tastendruck (Programme mit Buchstaben-Kürzeln)
+  TypeWord 'ab'
   Wait 900
   Tap 0x09
-  TypeWord 'x'
+  # Umschalten auf „Buchstaben als Text“: Getipptes wird ein Text-Schritt, die Rücktaste korrigiert ihn
+  $switch = FindIn $AE::RootElement $AE::NameProperty 'Buchstaben als Text' 2
+  Check 'Umschalter in der Leiste' ($switch -ne $null) ''
+  # Echter Mausklick wie beim Menschen: Die Leiste nimmt keinen Fokus, das Testfenster bleibt vorn.
+  $sr = $switch.Current.BoundingRectangle
+  [void][U]::SetCursorPos([int]($sr.Left + 20), [int]($sr.Top + $sr.Height / 2)); Wait 80
+  [U]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); Wait 40; [U]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Wait 150
+  Check 'Testfenster bleibt nach dem Umschalten vorn' ([U]::GetForegroundWindow() -eq $form.Handle) ''
+  Check 'Umschalter ist an' ($switch.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState -eq 'On') ''
+  TypeWord 'Hallo'; Tap 0x20; TypeWord 'Weltt'; Tap 0x08
   Wait 300
-  Check 'Tasten kommen im Programm an' ($tb.Text -eq "Hallo Welt`tx") ("'" + $tb.Text.Replace("`t", '<TAB>') + "'")
+  Check 'Tasten kommen im Programm an' ($tb.Text -eq "ab`tHallo Welt") ("'" + $tb.Text.Replace("`t", '<TAB>') + "'")
 
   Invoke $stop; Wait 2500
   $saved = Get-Content $cfg -Raw -Encoding UTF8 | ConvertFrom-Json
   $steps = @($saved.wheels[0].slots[0].action.steps)
   $desc = ($steps | ForEach-Object { if ($_.type -eq 'text') { "text:$($_.text)" } elseif ($_.type -eq 'delay') { "pause:$($_.delayMs)" } else { "keys:$($_.keys.code)" } }) -join ' | '
-  Check 'Schritte gespeichert' ($steps.Count -eq 4 -and $steps[0].text -eq 'Hallo Welt' -and $steps[1].type -eq 'delay' -and
-                                $steps[1].delayMs -ge 800 -and $steps[1].delayMs -le 1300 -and $steps[2].keys.code -eq 9 -and $steps[3].text -eq 'x') $desc
+  # Das Umschalten selbst kann eine Pause vor dem Text ergeben – die zählt hier nicht.
+  $core = @($steps | Select-Object -Skip 4 | Where-Object { $_.type -ne 'delay' })
+  Check 'Schritte gespeichert' ($steps.Count -ge 5 -and $steps[0].keys.code -eq 65 -and $steps[1].keys.code -eq 66 -and $steps[2].type -eq 'delay' -and
+                                $steps[2].delayMs -ge 800 -and $steps[2].delayMs -le 1300 -and $steps[3].keys.code -eq 9 -and
+                                $core.Count -eq 1 -and $core[0].text -eq 'Hallo Welt') $desc
   $gone = $false; try { [void]$stop.Current.BoundingRectangle; $gone = $stop.Current.IsOffscreen } catch { $gone = $true }
   Check 'Aufnahmeleiste wieder weg' $gone ''
 }

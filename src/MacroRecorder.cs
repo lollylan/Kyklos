@@ -19,15 +19,17 @@ namespace Kyklos
     }
 
     /// <summary>
-    /// Macht aus aufgenommenen Tasten Makro-Schritte: Getipptes wird ein Text-Schritt, Kürzel und Steuertasten werden
-    /// Tasten-Schritte, längeres Warten dazwischen eine Pause. Pausen innerhalb eines getippten Textes zählen nicht,
-    /// die Rücktaste korrigiert den gerade getippten Text, statt einen eigenen Schritt zu bekommen.
+    /// Macht aus aufgenommenen Tasten Makro-Schritte: Jede Taste wird ein Tasten-Schritt, längeres Warten dazwischen eine
+    /// Pause. Nur mit <see cref="LettersAsText"/> wird Getipptes zu einem Text-Schritt; Pausen darin zählen dann nicht,
+    /// und die Rücktaste korrigiert den gerade getippten Text, statt einen eigenen Schritt zu bekommen.
+    /// Standard sind Einzeltasten: Viele Programme nutzen einzelne Buchstaben als Kürzel, und eingefügter Text löst die nicht aus.
     /// </summary>
     public sealed class MacroRecorder
     {
         public const int MinPauseMs = 300;      // kürzeres Warten deckt die Pause zwischen den Schritten ab
 
         public readonly List<ActionDef> Steps = new List<ActionDef>();
+        public bool LettersAsText;              // lässt sich während der Aufnahme umschalten
         int _last;
         bool _started;
         char _dead;                             // gedrückte Tottaste (^ ´ `), wartet auf ihren Buchstaben
@@ -41,6 +43,12 @@ namespace Kyklos
             _started = true;
             _last = k.Time;
 
+            if (!LettersAsText)
+            {
+                FlushDead();
+                AddKey(k, gap);
+                return;
+            }
             if (dead)
             {
                 FlushDead();
@@ -67,8 +75,47 @@ namespace Kyklos
                 }
                 return;
             }
+            AddKey(k, gap);
+        }
+
+        void AddKey(RecordedKey k, int gap)
+        {
             Pause(gap);
             Steps.Add(new ActionDef { Type = ActionType.Keys, Keys = Chord.Key(k.Vk, k.Ctrl, k.Alt, k.Shift, k.Win) });
+        }
+
+        /// <summary>
+        /// Zerlegt einen Text in Tasten-Schritte, wie das Tastaturlayout sie tippen würde (Großbuchstaben mit Umschalt,
+        /// @ mit Strg+Alt). Zeichen ohne eigene Taste – etwa ê, das eine Tottaste braucht – bleiben als Text dazwischen stehen.
+        /// </summary>
+        public static List<ActionDef> SplitText(string text, IntPtr layout)
+        {
+            var steps = new List<ActionDef>();
+            var rest = new StringBuilder();
+            Action flush = () =>
+            {
+                if (rest.Length == 0) return;
+                steps.Add(new ActionDef { Type = ActionType.Text, Text = rest.ToString() });
+                rest.Clear();
+            };
+            foreach (char c in text.Replace("\r\n", "\n"))
+            {
+                Chord key = null;
+                if (c == '\n') key = Chord.Key(Native.VK_RETURN);
+                else if (c == '\t') key = Chord.Key(Native.VK_TAB);
+                else
+                {
+                    short scan = Native.VkKeyScanEx(c, layout);
+                    int vk = scan & 0xFF, mods = (scan >> 8) & 0xFF;
+                    if (scan != -1 && vk != 0xFF && (mods & ~7) == 0)
+                        key = Chord.Key(vk, ctrl: (mods & 2) != 0, alt: (mods & 4) != 0, shift: (mods & 1) != 0);
+                }
+                if (key == null) { rest.Append(c); continue; }
+                flush();
+                steps.Add(new ActionDef { Type = ActionType.Keys, Keys = key });
+            }
+            flush();
+            return steps;
         }
 
         /// <summary>Schließt die Aufnahme ab: eine zuletzt allein gedrückte Tottaste kommt als Zeichen dazu.</summary>
@@ -161,6 +208,7 @@ namespace Kyklos
     public sealed class RecordBar
     {
         public event Action<bool> Done;         // true: übernehmen, false: verwerfen
+        public event Action<bool> LettersAsTextChanged;
 
         readonly Window _win;
         readonly TextBlock _count;
@@ -180,6 +228,18 @@ namespace Kyklos
                 Style = (Style)Application.Current.FindResource("Btn"), Content = "Verwerfen", Margin = new Thickness(0, 0, 8, 0), Focusable = false
             };
             var stop = new Button { Style = (Style)Application.Current.FindResource("BtnPrimary"), Content = "Stopp", Focusable = false };
+            var asText = new CheckBox
+            {
+                Style = (Style)Application.Current.FindResource("Switch"), Content = "Buchstaben als Text", Focusable = false,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 20, 0),
+                ToolTip = "Aus: Jeder Buchstabe wird ein echter Tastendruck – für Programme, die Buchstaben als Kürzel nutzen.\n" +
+                          "An: Getipptes wird ein Text-Schritt und beim Abspielen eingefügt."
+            };
+            asText.Click += (s, e) =>
+            {
+                var changed = LettersAsTextChanged;
+                if (changed != null) changed(asText.IsChecked == true);
+            };
             discard.Click += (s, e) => Finish(false);
             stop.Click += (s, e) => Finish(true);
 
@@ -191,6 +251,7 @@ namespace Kyklos
                 Margin = new Thickness(10, 0, 0, 0)
             });
             row.Children.Add(_count);
+            row.Children.Add(asText);
             row.Children.Add(discard);
             row.Children.Add(stop);
 

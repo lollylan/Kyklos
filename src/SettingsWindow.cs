@@ -1325,6 +1325,9 @@ namespace Kyklos
                 var head = new DockPanel();
                 var tools = new StackPanel { Orientation = Orientation.Horizontal };
                 DockPanel.SetDock(tools, Dock.Right);
+                if (step.Type == ActionType.Text)
+                    tools.Children.Add(StepTool("\uE8C6", "In Einzeltasten aufteilen – für Programme, die Buchstaben als Kürzel nutzen",
+                                                step.Text.Length > 0, () => SplitTextStep(index)));
                 tools.Children.Add(StepTool("", "Nach oben", index > 0, () => SwapSteps(index, index - 1)));
                 tools.Children.Add(StepTool("", "Nach unten", index < steps.Count - 1, () => SwapSteps(index, index + 1)));
                 tools.Children.Add(StepTool("", "Schritt entfernen", true, () =>
@@ -1377,6 +1380,7 @@ namespace Kyklos
                 if (Cur.Action == macro) BuildSteps();
                 SlotChanged(false);
             };
+            bar.LettersAsTextChanged += on => rec.LettersAsText = on;
             InputHook.MacroSink = k =>
             {
                 if (_recBar != bar) return;
@@ -1396,6 +1400,17 @@ namespace Kyklos
             };
             b.Click += (s, e) => act();
             return b;
+        }
+
+        /// <summary>Ersetzt einen Text-Schritt durch einzelne Tastendrücke im aktuellen Tastaturlayout.</summary>
+        void SplitTextStep(int index)
+        {
+            var steps = Cur.Action.Steps;
+            var parts = MacroRecorder.SplitText(steps[index].Text, Native.GetKeyboardLayout(0));
+            steps.RemoveAt(index);
+            steps.InsertRange(index, parts);
+            BuildSteps();
+            SlotChanged(false);
         }
 
         void SwapSteps(int a, int b)
