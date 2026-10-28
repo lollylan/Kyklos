@@ -36,6 +36,7 @@ namespace Kyklos
         int _dragFrom = -1;
         Button _recBtn;
         object _recOld;
+        RecordBar _recBar;      // läuft gerade eine Makro-Aufnahme
 
         readonly ListBox WheelList;
         readonly ToggleButton NavGeneral;
@@ -45,7 +46,7 @@ namespace Kyklos
         readonly Grid EditorPanel;
         readonly ScrollViewer GeneralPanel;
         readonly Button AddWheel, ImportWheel, OnlineWheel, CloneWheel, ExportWheel, DeleteWheel, TriggerBtn, AddTrigger2, Trigger2Btn, Trigger2Clear, AddSlot, TestBtn, RemoveSlot, MoveCcw, MoveCw, CopySlot, PasteSlot, IconBtn, ImageBtn, IconClear,
-                        KeysBtn, BrowseBtn, OpenFolderBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn, GapPickBtn,
+                        KeysBtn, BrowseBtn, OpenFolderBtn, RecordMacroBtn, OpenConfigDir, ExportBtn, ImportBtn, QuitBtn, GapFieldBtn, GapChoiceBtn, GapPickBtn,
                         VariantBtn, AlternBtn, FolderFromFile, FolderFromWeb;
         readonly TextBox WheelName, LabelBox, TextBody, PathBox, ArgsBox, UrlBox, StepDelayBox, DelayBox;
         readonly ComboBox TypeBox, TextModeBox, MediaBox, AddStepBox;
@@ -105,7 +106,7 @@ namespace Kyklos
             AddSlot = F<Button>("AddSlot"); TestBtn = F<Button>("TestBtn"); RemoveSlot = F<Button>("RemoveSlot");
             MoveCcw = F<Button>("MoveCcw"); MoveCw = F<Button>("MoveCw"); CopySlot = F<Button>("CopySlot"); PasteSlot = F<Button>("PasteSlot"); IconBtn = F<Button>("IconBtn"); ImageBtn = F<Button>("ImageBtn");
             IconClear = F<Button>("IconClear"); KeysBtn = F<Button>("KeysBtn"); BrowseBtn = F<Button>("BrowseBtn");
-            OpenFolderBtn = F<Button>("OpenFolderBtn"); OpenConfigDir = F<Button>("OpenConfigDir"); ExportBtn = F<Button>("ExportBtn");
+            OpenFolderBtn = F<Button>("OpenFolderBtn"); RecordMacroBtn = F<Button>("RecordMacroBtn"); OpenConfigDir = F<Button>("OpenConfigDir"); ExportBtn = F<Button>("ExportBtn");
             ImportBtn = F<Button>("ImportBtn"); QuitBtn = F<Button>("QuitBtn");
             GapFieldBtn = F<Button>("GapFieldBtn"); GapChoiceBtn = F<Button>("GapChoiceBtn"); GapPickBtn = F<Button>("GapPickBtn");
             VariantBtn = F<Button>("VariantBtn"); AlternBtn = F<Button>("AlternBtn");
@@ -152,6 +153,7 @@ namespace Kyklos
             _w.Closed += (s, e) =>
             {
                 CancelRecord();
+                if (_recBar != null) _recBar.Finish(false);
                 if (_ticking) { CompositionTarget.Rendering -= OnFrame; _ticking = false; }
                 _host.Saved -= OnSaved;
                 _host.SaveFailed -= OnSaveFailed;
@@ -528,6 +530,7 @@ namespace Kyklos
                 Touch();
             };
             OpenFolderBtn.Click += (s, e) => EnterFolder(Cur);
+            RecordMacroBtn.Click += (s, e) => RecordMacro();
             FolderFromFile.Click += (s, e) => { CancelRecord(); FillFolderFromFile(Cur); };
             FolderFromWeb.Click += (s, e) =>
             {
@@ -1347,6 +1350,41 @@ namespace Kyklos
                     BorderBrush = Res("Line"), BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(0, 8, 0, 14), Child = body
                 });
             }
+        }
+
+        /// <summary>
+        /// Nimmt Tasten in anderen Programmen auf und hängt sie als Schritte an dieses Makro an. Die Einstellungen
+        /// treten dafür zur Seite, damit das Programm dahinter vorn steht; Stopp holt sie zurück.
+        /// </summary>
+        void RecordMacro()
+        {
+            if (_recBar != null) return;
+            CancelRecord();
+            var macro = Cur.Action;
+            var rec = new MacroRecorder();
+            var bar = new RecordBar();
+            _recBar = bar;
+            bar.Done += keep =>
+            {
+                InputHook.MacroSink = null;
+                _recBar = null;
+                if (!_w.IsLoaded) return;
+                if (_w.WindowState == WindowState.Minimized) _w.WindowState = WindowState.Normal;
+                _w.Activate();
+                var steps = rec.Finish();
+                if (!keep || steps.Count == 0) return;
+                macro.Steps.AddRange(steps);
+                if (Cur.Action == macro) BuildSteps();
+                SlotChanged(false);
+            };
+            InputHook.MacroSink = k =>
+            {
+                if (_recBar != bar) return;
+                rec.Add(k);
+                bar.SetCount(rec.Steps.Count);
+            };
+            bar.Show();
+            _w.WindowState = WindowState.Minimized;
         }
 
         Button StepTool(string glyph, string tip, bool enabled, Action act)

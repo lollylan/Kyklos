@@ -17,6 +17,8 @@ namespace Kyklos
     ///   --dev-savetest &lt;ordner&gt;  prüft das Speichern gegen eine von außen offen gehaltene Datei (savetest.txt)
     ///   --dev-focus &lt;programm&gt; [titel]  holt dessen Fenster nach vorn wie der Makro-Schritt; Rückgabe 0 bei Erfolg
     ///   --dev-ocr &lt;bild&gt;...      erkennt den Text wie „Text erkennen“ und schreibt ihn nach &lt;bild&gt;.txt; Rückgabe 0, wenn Text kam
+    ///   --dev-macrorec &lt;bericht.txt&gt;  wandelt eine feste Tastenfolge wie die Makro-Aufnahme um (deutsches Layout nötig);
+    ///                           Rückgabe 0, wenn die erwarteten Schritte herauskommen
     ///   --dev-ai &lt;ollama-adresse&gt; &lt;modell&gt; &lt;anweisung.txt&gt; &lt;text.txt&gt;  schickt den Text wie eine KI-Anweisung an Ollama,
     ///                           Antwort nach &lt;text.txt&gt;.out.txt; Rückgabe 0, wenn eine kam
     /// </summary>
@@ -31,6 +33,7 @@ namespace Kyklos
             if (args[0] == "--dev-savetest") return SaveTest(args[1]);
             if (args[0] == "--dev-ocr") return OcrFiles(args);
             if (args[0] == "--dev-ai" && args.Length >= 5) return AiFile(args);
+            if (args[0] == "--dev-macrorec") return MacroRec(args[1]);
             if (args[0] == "--dev-kiwheel") { AiWheel(args[1]); return 0; }
             if (args[0] == "--dev-focus")
             {
@@ -38,6 +41,46 @@ namespace Kyklos
                 return System.Threading.Tasks.Task.Run(() => WindowFocus.Bring(a)).Result ? 0 : 1;
             }
             return 2;
+        }
+
+        // ---------------------------------------------------------------- Makro-Aufnahme
+
+        static int MacroRec(string report)
+        {
+            IntPtr layout = Native.GetKeyboardLayout(0);
+            int time = 1000;
+            var rec = new MacroRecorder();
+            Action<int, int, bool, bool, bool> key = (vk, after, shift, ctrl, altGr) =>
+            {
+                time += after;
+                rec.Add(new RecordedKey
+                {
+                    Vk = vk, Scan = (int)Native.MapVirtualKey((uint)vk, 0), Time = time, Shift = shift,
+                    Ctrl = ctrl || altGr, Alt = altGr, AltGr = altGr, Layout = layout
+                });
+            };
+            key('H', 0, true, false, false);
+            foreach (char c in "ALLO") key(c, 120, false, false, false);
+            key(0x20, 900, false, false, false);         // Pause mitten im Text zählt nicht
+            key(0xBA, 100, false, false, false);         // ü
+            key('Q', 100, false, false, true);           // AltGr+Q = @
+            key(0xDC, 100, false, false, false);         // Tottaste ^
+            key('E', 100, false, false, false);          // ê
+            key(Native.VK_BACK, 100, false, false, false);
+            key(Native.VK_TAB, 800, false, false, false);
+            key('C', 100, false, true, false);           // Strg+C
+            key('X', 100, false, false, false);
+            key(Native.VK_RETURN, 100, false, false, false);
+            key(0xDC, 500, false, false, false);         // Tottaste allein am Ende
+            var steps = rec.Finish();
+
+            var lines = new List<string>();
+            foreach (var s in steps)
+                lines.Add(s.Type == ActionType.Text ? "text:" + s.Text : s.Type == ActionType.Delay ? "pause:" + s.DelayMs : "keys:" + s.Keys.Display());
+            string got = string.Join(" | ", lines);
+            string want = string.Join(" | ", new[] { "text:Hallo ü@", "pause:800", "keys:Tab", "keys:Strg + C", "text:x", "keys:Eingabe", "pause:500", "text:^" });
+            File.WriteAllText(report, "Layout " + ((long)layout & 0xFFFF).ToString("X4") + ": " + got + Environment.NewLine);
+            return got == want ? 0 : 1;
         }
 
         // ---------------------------------------------------------------- KI

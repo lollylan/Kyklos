@@ -256,7 +256,13 @@
 
               <StackPanel x:Name="PMacro" Margin="0,4,0,0">
                 <StackPanel x:Name="StepsHost"/>
-                <ComboBox x:Name="AddStepBox" Tag="Schritt hinzufügen …" Margin="0,12,0,0"/>
+                <DockPanel Margin="0,12,0,0">
+                  <Button x:Name="RecordMacroBtn" DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Aufnehmen" Margin="8,0,0,0"
+                          ToolTip="Nimmt die Tasten auf, die du in einem anderen Programm drückst, und hängt sie als Schritte an."/>
+                  <ComboBox x:Name="AddStepBox" Tag="Schritt hinzufügen …"/>
+                </DockPanel>
+                <TextBlock Style="{StaticResource Help}"
+                           Text="Bei der Aufnahme tritt Kyklos zur Seite. Getippter Text wird ein Text-Schritt, Kürzel wie Strg+C und Tab werden Tasten, längeres Warten eine Pause. Mausklicks werden nicht aufgenommen."/>
                 <DockPanel Margin="0,16,0,0" LastChildFill="False">
                   <TextBlock Text="Pause zwischen den Schritten" VerticalAlignment="Center"/>
                   <TextBlock DockPanel.Dock="Right" Text="ms" VerticalAlignment="Center" Foreground="{StaticResource Ink2}" Margin="8,0,0,0"/>

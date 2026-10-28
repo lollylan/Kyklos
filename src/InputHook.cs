@@ -26,6 +26,10 @@ namespace Kyklos
         public static volatile bool RecordAllowMouse;
         public static volatile bool RecordAllowEscape;     // Esc wird aufgenommen statt abzubrechen (zu sendende Kombinationen)
         public static volatile bool Paused;
+        /// <summary>Ist gesetzt, solange ein Makro aufgenommen wird: bekommt jede Taste, die in einem fremden Programm gedrückt wird.</summary>
+        public static volatile Action<RecordedKey> MacroSink;
+
+        static readonly uint OwnPid = (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
 
         static volatile Binding[] _bindings = new Binding[0];
         static volatile Binding _active;        // Rad ist offen
@@ -146,10 +150,34 @@ namespace Kyklos
                 {
                     int msg = (int)wParam;
                     bool down = msg == Native.WM_KEYDOWN || msg == Native.WM_SYSKEYDOWN;
-                    if (HandleKey((int)k.vkCode, down)) return (IntPtr)1;
+                    var sink = MacroSink;
+                    // Bei der Aufnahme geht jede Taste unverändert ans Programm, und kein Rad öffnet sich.
+                    if (sink != null && down && RecordCallback == null) RecordMacroKey(sink, k);
+                    else if (HandleKey((int)k.vkCode, down)) return (IntPtr)1;
                 }
             }
             return Native.CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+        }
+
+        static void RecordMacroKey(Action<RecordedKey> sink, Native.KBDLLHOOKSTRUCT k)
+        {
+            int vk = (int)k.vkCode;
+            // Zusatztasten zählen nur zusammen mit ihrer Taste; Feststell- und Num-Taste stecken im erzeugten Zeichen.
+            if (KeyNames.IsModifier(vk) || vk == 0x14 || vk == 0x90 || vk == 0xE7) return;
+            uint pid;
+            uint tid = Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out pid);
+            if (pid == OwnPid) return;      // Tippen in Kyklos selbst gehört nicht ins Makro
+            bool ctrl = Native.IsDown(Native.VK_CONTROL), alt = Native.IsDown(Native.VK_MENU);
+            var r = new RecordedKey
+            {
+                Vk = vk, Scan = (int)k.scanCode, Time = (int)k.time,
+                Ctrl = ctrl, Alt = alt, Shift = Native.IsDown(Native.VK_SHIFT),
+                Win = Native.IsDown(Native.VK_LWIN) || Native.IsDown(Native.VK_RWIN),
+                AltGr = ctrl && Native.IsDown(Native.VK_RMENU),
+                Caps = (Native.GetKeyState(0x14) & 1) != 0,
+                Layout = Native.GetKeyboardLayout(tid)
+            };
+            Post(() => sink(r));
         }
 
         static bool HandleKey(int vk, bool down)
@@ -278,7 +306,7 @@ namespace Kyklos
             }
 
             StillHeld(key, false);      // Maustasten wiederholen nicht: ein alter Eintrag ist immer ein verlorenes Loslassen
-            if (Paused || btn <= 0) return false;
+            if (Paused || MacroSink != null || btn <= 0) return false;
             var b = Match(true, btn);
             if (b == null) return false;
             _active = b;

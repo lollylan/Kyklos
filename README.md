@@ -78,7 +78,7 @@ sofort.
 | Programm, Datei oder Ordner öffnen | Auch mit Parametern; `%USERPROFILE%` und andere Umgebungsvariablen werden aufgelöst |
 | Website öffnen | Im Standardbrowser |
 | Medien und System | Wiedergabe, Lautstärke, Bildschirmausschnitt, [Text erkennen](#text-erkennen), Desktop anzeigen, PC sperren |
-| Makro | Mehrere der obigen Schritte nacheinander, mit Pausen und Mausklicks (links, doppelt, rechts, Mitte) an einem festen Bildschirmpunkt. „Position aufnehmen" gibt 3 Sekunden, um den Zeiger auf das Ziel zu stellen; nach dem Klick steht der Zeiger wieder, wo er war. Zuverlässiger als ein Klick ist der Schritt „Fenster nach vorn holen“: Er sucht das zuletzt benutzte Fenster eines Programms (optional mit Teil des Titels), holt es auch verdeckt oder minimiert nach vorn und startet das Programm bei Bedarf. Findet er keins, bricht das Makro ab, damit die folgenden Tasten nicht im falschen Programm landen |
+| Makro | Mehrere der obigen Schritte nacheinander, mit Pausen und Mausklicks (links, doppelt, rechts, Mitte) an einem festen Bildschirmpunkt. „Position aufnehmen" gibt 3 Sekunden, um den Zeiger auf das Ziel zu stellen; nach dem Klick steht der Zeiger wieder, wo er war. Zuverlässiger als ein Klick ist der Schritt „Fenster nach vorn holen“: Er sucht das zuletzt benutzte Fenster eines Programms (optional mit Teil des Titels), holt es auch verdeckt oder minimiert nach vorn und startet das Programm bei Bedarf. Findet er keins, bricht das Makro ab, damit die folgenden Tasten nicht im falschen Programm landen. **Aufnehmen** nimmt stattdessen auf, was du in einem anderen Programm tippst: Kyklos tritt zur Seite, unten erscheint eine Leiste mit *Stopp*. Getippter Text wird ein Text-Schritt (Rücktaste korrigiert ihn gleich mit), Kürzel wie `Strg + C`, Tab und Eingabe werden Tasten, Warten ab 0,3 s eine Pause, deren Millisekunden sich danach anpassen lassen. Mausklicks werden nicht aufgenommen |
 | KI-Anweisung | Schickt markierten Text mit einer Anweisung an ein Sprachmodell (Ollama, OpenAI, Anthropic, OpenRouter) und legt das Ergebnis in die Zwischenablage oder ersetzt die Markierung – siehe [KI-Anweisungen](#ki-anweisungen) |
 | Unterrad | Ein weiteres Rad hinter diesem Segment |
 
@@ -308,6 +308,7 @@ fehlt es, erzeugt es der Build.
 | `src\Model.cs`, `src\ConfigStore.cs`, `src\Json.cs` | Datenmodell, Laden/Speichern, Beispiel-Räder |
 | `src\Dev.cs` | `--dev-render <ordner>` rendert Rad und Einstellungen als PNG zur Sichtprüfung, `--dev-icon <datei>` das Symbol, `--dev-ocr <bild>` erkennt den Text eines Bilds nach `<bild>.txt` |
 | `tools\e2e.ps1` | Funktionstest mit echten Eingaben: startet die Exe mit einer Testkonfiguration, hält die Auslösetaste, bewegt die Maus und prüft, was im Testfenster ankommt (bewegt ca. 15 s lang den Mauszeiger) |
+| `tools\e2e-makro-aufnahme.ps1` | Funktionstest der Makro-Aufnahme: drückt „Aufnehmen“, tippt in ein Testfenster, drückt „Stopp“ und prüft die gespeicherten Schritte (ca. 15 s nichts anfassen) |
 | `tools\galerie-index.ps1` | Erzeugt `galerie\index.json` aus den Rad-Dateien in `galerie\raeder` |
 | `tools\import-icons.mjs` | Übernimmt weitere Liniensymbole aus Tabler oder Lucide, z. B. `node tools/import-icons.mjs tabler:bone=knochen`, und gibt die Einträge für `Icons.cs` aus |
 

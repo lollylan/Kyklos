@@ -78,6 +78,13 @@ namespace Kyklos
         public static extern short GetAsyncKeyState(int vKey);
         [DllImport("user32.dll")]
         public static extern uint MapVirtualKey(uint uCode, uint uMapType);
+        [DllImport("user32.dll")]
+        public static extern short GetKeyState(int vKey);
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetKeyboardLayout(uint idThread);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyState, System.Text.StringBuilder pwszBuff,
+                                             int cchBuff, uint wFlags, IntPtr dwhkl);
 
         [DllImport("user32.dll")]
         public static extern bool GetCursorPos(out POINT lpPoint);
