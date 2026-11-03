@@ -580,6 +580,26 @@ namespace Kyklos
             sw.DevScrollInspector(false);
             Pump(400);      // Schalter-Animation auslaufen lassen
             Shot(win, Path.Combine(dir, "settings-macro-focus.png"));
+            macro.Steps.Clear();
+            macro.Steps.Add(new ActionDef { Type = ActionType.Keys, Keys = Chord.Key('P', ctrl: true) });
+            var loop = new ActionDef { Type = ActionType.Loop, Repeat = 10 };
+            loop.Steps.Add(new ActionDef { Type = ActionType.Keys, Keys = Chord.Key(Native.VK_TAB) });
+            loop.Steps.Add(new ActionDef { Type = ActionType.Delay, DelayMs = 300 });
+            loop.Steps.Add(new ActionDef { Type = ActionType.Keys, Keys = Chord.Key(Native.VK_RETURN) });
+            macro.Steps.Add(loop);
+            macro.Steps.Add(new ActionDef { Type = ActionType.Text, Text = "Fertig" });
+            sw.DevSelect(1);
+            sw.DevSelect(2);
+            sw.DevScrollInspector(false);
+            Pump(400);
+            Shot(win, Path.Combine(dir, "settings-macro-loop.png"));
+            loop.AskRepeat = true;
+            loop.Steps.Clear();
+            sw.DevSelect(1);
+            sw.DevSelect(2);
+            sw.DevScrollInspector(false);
+            Pump(400);
+            Shot(win, Path.Combine(dir, "settings-macro-loop-ask.png"));
             sw.ShowGeneral();
             Pump(400);      // Schalter-Animation auslaufen lassen
             Shot(win, Path.Combine(dir, "settings-general.png"));
@@ -779,6 +799,10 @@ namespace Kyklos
         {
             const string cold = "Erkältungssymptome seit {?Tage} Tagen mit {?Symptome: Husten | Schnupfen | Heiserkeit | Kopfschmerzen | Gliederschmerzen | Fieber}. " +
                                 "Kein Kontakt zu Erkrankten bekannt. Vorstellung am {datum}.";
+            FillShot(Path.Combine(dir, "loop-ask-one.png"), FillWindow.DevBuildCounts(new[] { "Wie oft sollen die 3 Schritte laufen?" }, new[] { 10 },
+                                                                                      "Rezepte drucken", Palette.Parse(Palette.Colors[4][0])));
+            FillShot(Path.Combine(dir, "loop-ask-two.png"), FillWindow.DevBuildCounts(new[] { "Schritt 3: Schleife mit 3 Schritten", "Schritt 6: Schleife mit 1 Schritt" },
+                                                                                      new[] { 10, 2 }, "Rezepte drucken", Palette.Parse(Palette.Colors[0][0])));
             FillShot(Path.Combine(dir, "fill-empty.png"), cold, "Erkältung", Palette.Colors[3][0], null, 0);
             FillShot(Path.Combine(dir, "fill-filled.png"), cold, "Erkältung", Palette.Colors[3][0], g =>
             {
@@ -797,7 +821,11 @@ namespace Kyklos
 
         static void FillShot(string path, string text, string title, string color, Action<List<Gaps.Gap>> fill, int focus, Skin skin = null)
         {
-            var win = FillWindow.DevBuild(text, title, Palette.Parse(color), fill, focus, skin);
+            FillShot(path, FillWindow.DevBuild(text, title, Palette.Parse(color), fill, focus, skin));
+        }
+
+        static void FillShot(string path, Window win)
+        {
             win.ShowActivated = false;
             win.Show();
             win.Dispatcher.Invoke(DispatcherPriority.ApplicationIdle, new Action(() => { }));

@@ -426,6 +426,8 @@ namespace Kyklos
         readonly Button _ok;
         readonly TaskCompletionSource<bool> _done = new TaskCompletionSource<bool>();
         readonly Brush _hot, _hotText, _text1, _text2, _text3;
+        readonly int _countMax;     // > 0: fragt Anzahlen ab (Makro-Schleifen) statt Lücken eines Textes
+        readonly TextBlock _countError;
         Gaps.Gap _active;
         bool _finished;
 
@@ -442,10 +444,31 @@ namespace Kyklos
             return result;
         }
 
-        FillWindow(string text, string title, Color hot, Skin skin)
+        /// <summary>
+        /// Fragt beim Auslösen eines Makros ab, wie oft seine Schleifen laufen sollen. Gleiches Fenster und gleiche Bedienung
+        /// wie bei den Lücken. Ergebnis sind die Anzahlen in der Reihenfolge der Namen, null bei Abbruch.
+        /// </summary>
+        public static async Task<int[]> AskCounts(IList<string> names, IList<int> suggested, int max, string title, Color hot, Skin skin)
+        {
+            IntPtr target = Native.GetForegroundWindow();
+            var f = new FillWindow(null, CountGaps(names, suggested), title, hot, skin, max);
+            bool ok = await f.Run();
+            await GiveBack(target);
+            return ok ? f._gaps.Select(g => int.Parse(g.Value.Trim())).ToArray() : null;
+        }
+
+        static List<Gaps.Gap> CountGaps(IList<string> names, IList<int> suggested)
+        {
+            return names.Select((n, i) => new Gaps.Gap { Key = i.ToString(), Name = n, Value = suggested[i].ToString() }).ToList();
+        }
+
+        FillWindow(string text, string title, Color hot, Skin skin) : this(text, Gaps.Parse(text), title, hot, skin, 0) { }
+
+        FillWindow(string text, List<Gaps.Gap> gaps, string title, Color hot, Skin skin, int countMax)
         {
             _text = text;
-            _gaps = Gaps.Parse(text);
+            _gaps = gaps;
+            _countMax = countMax;
             var res = (ResourceDictionary)XamlReader.Parse(Styles);
             // Gerätefarben des gewählten Aussehens. Milchglas wird hier deckend hell: Hinter einem Fenster, in das
             // getippt wird, soll nichts durchscheinen.
@@ -482,6 +505,7 @@ namespace Kyklos
                 CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 11, 10, 12), Margin = new Thickness(0, 12, 0, 0),
                 Child = _previewScroll
             };
+            if (countMax > 0) display.Visibility = Visibility.Collapsed;     // Es gibt keinen Text, der gleich im Feld steht.
             DockPanel.SetDock(display, Dock.Top);
             root.Children.Add(display);
 
@@ -490,7 +514,7 @@ namespace Kyklos
             DockPanel.SetDock(foot, Dock.Bottom);
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Bottom };
             var cancel = new Button { Content = "Abbrechen", Style = (Style)res["Ghost"], ToolTip = "Esc" };
-            _ok = new Button { Content = "Einfügen", Style = (Style)res["Primary"], Margin = new Thickness(8, 0, 0, 0), ToolTip = "Strg + Enter" };
+            _ok = new Button { Content = countMax > 0 ? "Starten" : "Einfügen", Style = (Style)res["Primary"], Margin = new Thickness(8, 0, 0, 0), ToolTip = "Strg + Enter" };
             cancel.Click += (s, e) => Finish(false);
             _ok.Click += (s, e) => Finish(true);
             buttons.Children.Add(cancel);
@@ -498,10 +522,10 @@ namespace Kyklos
             DockPanel.SetDock(buttons, Dock.Right);
             foot.Children.Add(buttons);
             var hints = new WrapPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
-            Hint(hints, res, "Tab", "weiter");
+            if (countMax == 0 || _gaps.Count > 1) Hint(hints, res, "Tab", "weiter");
             if (_gaps.Any(g => g.IsChoice && !g.Single)) Hint(hints, res, "Leertaste", "an / aus");
             if (_gaps.Any(g => g.Single)) Hint(hints, res, "Pfeiltasten", "wählen");
-            Hint(hints, res, "Enter", _gaps.Count > 1 ? "nächste Lücke" : "einfügen");
+            Hint(hints, res, "Enter", _gaps.Count > 1 ? (countMax > 0 ? "nächste" : "nächste Lücke") : countMax > 0 ? "starten" : "einfügen");
             foot.Children.Add(hints);
             root.Children.Add(foot);
 
@@ -517,7 +541,21 @@ namespace Kyklos
                     box.TextChanged += (s, e) => { g.Value = box.Text; Render(); };
                     box.GotKeyboardFocus += (s, e) => { box.SelectAll(); Activate(g); };
                     box.Tag = g;
-                    fields.Children.Add(box);
+                    if (countMax > 0)
+                    {
+                        box.Text = g.Value;
+                        box.Width = 88;
+                        box.MaxLength = countMax.ToString().Length;
+                        box.PreviewTextInput += (s, e) => { if (!e.Text.All(char.IsDigit)) e.Handled = true; };
+                        var row = new StackPanel { Orientation = Orientation.Horizontal };
+                        row.Children.Add(box);
+                        row.Children.Add(new TextBlock
+                        {
+                            Text = "mal", FontSize = 13, Foreground = _text2, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center
+                        });
+                        fields.Children.Add(row);
+                    }
+                    else fields.Children.Add(box);
                     _firsts.Add(box);
                 }
                 else if (g.Single)
@@ -552,6 +590,15 @@ namespace Kyklos
                     fields.Children.Add(list);
                 }
             }
+            if (countMax > 0)
+            {
+                _countError = new TextBlock
+                {
+                    Text = "Bitte eine Zahl von 1 bis " + countMax + " eingeben.", FontSize = 12, Foreground = _hotText,
+                    Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed
+                };
+                fields.Children.Add(_countError);
+            }
             var scroll = new ScrollViewer
             {
                 Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Focusable = false,
@@ -562,7 +609,7 @@ namespace Kyklos
             var chassis = new Border
             {
                 Background = (Brush)res["Chassis"], BorderBrush = (Brush)res["Rim"], BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10), Width = 480, Margin = new Thickness(28, 18, 28, 38), Child = root,
+                CornerRadius = new CornerRadius(10), Width = countMax > 0 ? 360 : 480, Margin = new Thickness(28, 18, 28, 38), Child = root,
                 // Wie unter dem Rad: das Gerät liegt auf dem Bildschirm und wirft einen weichen Schatten nach unten.
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
@@ -730,6 +777,7 @@ namespace Kyklos
 
         void Render()
         {
+            if (_countMax > 0) return;
             _preview.Inlines.Clear();
             Run activeRun = null;
             foreach (var piece in Gaps.Pieces(ActionRunner.ExpandForPreview(_text), _gaps))
@@ -768,10 +816,24 @@ namespace Kyklos
 
         void Finish(bool ok)
         {
-            if (_finished) return;
+            if (_finished || (ok && !CountsValid())) return;
             _finished = true;
             if (_win.IsVisible) _win.Close();
             _done.TrySetResult(ok);
+        }
+
+        bool CountsValid()
+        {
+            if (_countMax == 0) return true;
+            for (int i = 0; i < _gaps.Count; i++)
+            {
+                int v;
+                if (int.TryParse(_gaps[i].Value.Trim(), out v) && v >= 1 && v <= _countMax) continue;
+                _countError.Visibility = Visibility.Visible;
+                _firsts[i].Focus();
+                return false;
+            }
+            return true;
         }
 
         static SolidColorBrush Solid(Color c)
@@ -782,6 +844,12 @@ namespace Kyklos
         }
 
         // ---------------------------------------------------------------- Sichtprüfung (--dev-render)
+
+        /// <summary>Baut die Abfrage der Schleifen auf, ohne sie zu zeigen – für Dev.Render.</summary>
+        public static Window DevBuildCounts(IList<string> names, IList<int> suggested, string title, Color hot, Skin skin = null)
+        {
+            return new FillWindow(null, CountGaps(names, suggested), title, hot, skin, ActionDef.MaxRepeat)._win;
+        }
 
         /// <summary>Baut das Fenster mit Beispielwerten auf, ohne es zu zeigen – für Dev.Render.</summary>
         public static Window DevBuild(string text, string title, Color hot, Action<List<Gaps.Gap>> fill, int focusGap, Skin skin = null)

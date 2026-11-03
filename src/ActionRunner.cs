@@ -224,7 +224,9 @@ namespace Kyklos
             try
             {
                 KeySender.ReleaseModifiers();
-                await Run(action, settings, origin, 0);
+                InputHook.LoopAborted = false;
+                var counts = await AskLoops(action, settings, origin);
+                if (counts != null) await Run(action, settings, origin, 0, counts, 0);
             }
             catch (Exception ex) { Log.Write("Aktion fehlgeschlagen: " + ex); }
             finally { Gate.Release(); }
@@ -238,14 +240,49 @@ namespace Kyklos
             finally { Gate.Release(); }
         }
 
+        /// <summary>
+        /// Fragt die Anzahl aller Schleifen ab, die das wissen wollen – vor dem ersten Schritt, damit das Makro danach
+        /// ungestört durchläuft und ein Abbruch nichts halb erledigt zurücklässt.
+        /// </summary>
+        /// <returns>Anzahl je Schleife, null bei Abbruch.</returns>
+        static async Task<Dictionary<ActionDef, int>> AskLoops(ActionDef action, Settings st, Slot origin)
+        {
+            var result = new Dictionary<ActionDef, int>();
+            var loops = new List<KeyValuePair<string, ActionDef>>();
+            CollectAsking(action, "", loops);
+            if (loops.Count == 0) return result;
+            var names = new List<string>();
+            foreach (var l in loops)
+            {
+                int n = l.Value.Steps.Count;
+                names.Add(loops.Count > 1 ? "Schritt " + l.Key + ": Schleife mit " + ActionDef.StepCount(n, true)
+                        : n == 1 ? "Wie oft soll der Schritt laufen?" : "Wie oft sollen die " + n + " Schritte laufen?");
+            }
+            int[] counts = await FillWindow.AskCounts(names, loops.ConvertAll(l => l.Value.Repeat), ActionDef.MaxRepeat,
+                                                      origin == null ? "" : origin.DisplayLabel,
+                                                      origin == null ? Palette.Parse(Palette.Default) : origin.ColorValue, Skin.Get(st.Skin));
+            if (counts == null) return null;
+            for (int i = 0; i < counts.Length; i++) result[loops[i].Value] = counts[i];
+            return result;
+        }
+
+        static void CollectAsking(ActionDef a, string position, List<KeyValuePair<string, ActionDef>> found)
+        {
+            if (a.Type != ActionType.Macro && a.Type != ActionType.Loop) return;
+            if (a.Type == ActionType.Loop && a.AskRepeat && a.Steps.Count > 0) found.Add(new KeyValuePair<string, ActionDef>(position, a));
+            for (int i = 0; i < a.Steps.Count; i++)
+                CollectAsking(a.Steps[i], position.Length == 0 ? (i + 1).ToString() : position + "." + (i + 1), found);
+        }
+
+        /// <param name="counts">Beim Auslösen abgefragte Anzahl je Schleife.</param>
+        /// <param name="pause">Pause zwischen den Schritten des umgebenden Makros – gilt auch in seinen Schleifen.</param>
         /// <returns>false, wenn ein Makro hier abbrechen soll.</returns>
-        static async Task<bool> Run(ActionDef a, Settings st, Slot origin, int depth)
+        static async Task<bool> Run(ActionDef a, Settings st, Slot origin, int depth, Dictionary<ActionDef, int> counts, int pause)
         {
             switch (a.Type)
             {
                 case ActionType.Text:
-                    await InsertText(a, st, origin);
-                    break;
+                    return await InsertText(a, st, origin);
                 case ActionType.Keys:
                     KeySender.Combo(a.Keys);
                     break;
@@ -266,7 +303,7 @@ namespace Kyklos
                     Media(a.Media);
                     break;
                 case ActionType.Delay:
-                    await Task.Delay(Math.Max(0, Math.Min(60000, a.DelayMs)));
+                    await Wait(Math.Max(0, Math.Min(60000, a.DelayMs)));
                     break;
                 case ActionType.Click:
                     await KeySender.Click(a.X, a.Y, a.Button);
@@ -279,14 +316,61 @@ namespace Kyklos
                     return false;
                 case ActionType.Macro:
                     if (depth > 4) break;
+                    int stepPause = Math.Max(0, Math.Min(5000, a.StepDelayMs));
                     for (int i = 0; i < a.Steps.Count; i++)
                     {
-                        if (!await Run(a.Steps[i], st, origin, depth + 1)) return false;
-                        if (i + 1 < a.Steps.Count) await Task.Delay(Math.Max(0, Math.Min(5000, a.StepDelayMs)));
+                        if (!await Run(a.Steps[i], st, origin, depth + 1, counts, stepPause)) return false;
+                        if (i + 1 < a.Steps.Count) await Task.Delay(stepPause);
                     }
                     break;
+                case ActionType.Loop:
+                    return await RunLoop(a, st, origin, depth, counts, pause);
             }
             return true;
+        }
+
+        static async Task<bool> RunLoop(ActionDef a, Settings st, Slot origin, int depth, Dictionary<ActionDef, int> counts, int pause)
+        {
+            if (depth > 4 || a.Steps.Count == 0) return true;
+            int times;
+            if (!counts.TryGetValue(a, out times)) times = ActionDef.ClampRepeat(a.Repeat);
+            bool outer = InputHook.WatchEscape;
+            try
+            {
+                for (int n = 0; n < times; n++)
+                    for (int i = 0; i < a.Steps.Count; i++)
+                    {
+                        // Fenster, die selbst auf Esc hören, behalten die Taste.
+                        InputHook.WatchEscape = !OwnsEscape(a.Steps[i]);
+                        if (!await Run(a.Steps[i], st, origin, depth + 1, counts, pause)) return false;
+                        InputHook.WatchEscape = true;
+                        if (n + 1 < times || i + 1 < a.Steps.Count) await Wait(pause);
+                        if (InputHook.LoopAborted)
+                        {
+                            System.Media.SystemSounds.Exclamation.Play();
+                            return false;
+                        }
+                    }
+            }
+            finally { InputHook.WatchEscape = outer; }
+            return true;
+        }
+
+        static bool OwnsEscape(ActionDef step)
+        {
+            return (step.Type == ActionType.Text && Gaps.Has(step.Text)) || (step.Type == ActionType.Media && step.Media == "ocr");
+        }
+
+        /// <summary>Wartet und hört dabei sofort auf, wenn eine Schleife per Esc abgebrochen wird.</summary>
+        static async Task Wait(int ms)
+        {
+            int start = Environment.TickCount;
+            while (!InputHook.LoopAborted)
+            {
+                int left = ms - unchecked(Environment.TickCount - start);
+                if (left <= 0) return;
+                await Task.Delay(Math.Min(left, 50));
+            }
         }
 
         public static bool Start(string target, string args)
@@ -332,18 +416,19 @@ namespace Kyklos
 
         public const string SampleMark = "[Beispieltext] ";
 
-        static async Task InsertText(ActionDef a, Settings st, Slot origin)
+        /// <returns>false, wenn die Abfrage der Lücken abgebrochen wurde.</returns>
+        static async Task<bool> InsertText(ActionDef a, Settings st, Slot origin)
         {
             string raw = Variants.Resolve(a.Text);
             if (Gaps.Has(raw))
             {
                 raw = await FillWindow.Ask(raw, origin == null ? "" : origin.DisplayLabel,
                                            origin == null ? Palette.Parse(Palette.Default) : origin.ColorValue, Skin.Get(st.Skin));
-                if (raw == null) return;    // abgebrochen
+                if (raw == null) return false;    // abgebrochen
             }
             int back;
             string text = Expand(raw, out back);
-            if (text.Length == 0) return;
+            if (text.Length == 0) return true;
             // Mitgelieferte Beispieltexte dürfen nicht unbemerkt als eigener Befund in einer Karteikarte landen.
             if (a.Sample) text = SampleMark + text;
 
@@ -376,6 +461,7 @@ namespace Kyklos
                 await Task.Delay(a.Mode == TextMode.Type ? 30 : 90);
                 KeySender.Tap(Native.VK_LEFT, back);
             }
+            return true;
         }
 
         /// <summary>

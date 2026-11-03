@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 
 namespace Kyklos
 {
-    public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay, Click, Focus, Ai }
+    public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay, Click, Focus, Ai, Loop }
     public enum TextMode { Paste, Type }
 
     /// <summary>Taste oder Maustaste samt Zusatztasten – als Auslöser eines Rads oder als zu sendende Kombination.</summary>
@@ -81,6 +81,9 @@ namespace Kyklos
         public string Media = "playpause";
         public List<ActionDef> Steps = new List<ActionDef>();
         public int StepDelayMs = 60;
+        // Schleife: Steps laufen so oft hintereinander, innerhalb eines Makros mit dessen Pause zwischen den Schritten.
+        public int Repeat = 10;             // bei AskRepeat der Vorschlag in der Abfrage
+        public bool AskRepeat;              // Anzahl beim Auslösen des Makros abfragen
         public int DelayMs = 250;
         public int X, Y;                    // Bildschirmpunkt in physischen Pixeln (Mausklick)
         public string Button = "left";
@@ -104,6 +107,16 @@ namespace Kyklos
         {
             new[] { "left", "Linksklick" }, new[] { "double", "Doppelklick" }, new[] { "right", "Rechtsklick" }, new[] { "middle", "Mittelklick" }
         };
+
+        public const int MaxRepeat = 999;
+
+        public static int ClampRepeat(int n) { return Math.Max(1, Math.Min(MaxRepeat, n)); }
+
+        /// <param name="dative">„mit 3 Schritten“ statt „3 Schritte“.</param>
+        public static string StepCount(int n, bool dative = false)
+        {
+            return n == 1 ? "1 Schritt" : n + (dative ? " Schritten" : " Schritte");
+        }
 
         public static string ButtonName(string id)
         {
@@ -132,6 +145,7 @@ namespace Kyklos
                 case ActionType.Click: return "Mausklick";
                 case ActionType.Focus: return "Fenster nach vorn holen";
                 case ActionType.Ai: return "KI-Anweisung";
+                case ActionType.Loop: return "Schleife (Schritte wiederholen)";
                 default: return "Keine Aktion";
             }
         }
@@ -160,6 +174,8 @@ namespace Kyklos
                     int n = Slots.Count(s => !s.IsEmpty);
                     return n == 1 ? "Unterrad · 1 Eintrag" : "Unterrad · " + n + " Einträge";
                 case ActionType.Delay: return "Pause " + DelayMs + " ms";
+                case ActionType.Loop:
+                    return "Schleife · " + StepCount(Steps.Count) + (AskRepeat ? ", Anzahl beim Auslösen" : ", " + Repeat + "-mal");
                 case ActionType.Click: return ButtonName(Button) + " bei " + X + ", " + Y;
                 case ActionType.Focus:
                     string who = string.IsNullOrWhiteSpace(Path) ? "" : FileName(Path.Trim().Trim('"'));
@@ -202,6 +218,11 @@ namespace Kyklos
                     d["stepDelayMs"] = StepDelayMs;
                     d["steps"] = Steps.Select(s => (object)s.ToJson()).ToList();
                     break;
+                case ActionType.Loop:
+                    d["repeat"] = Repeat;
+                    if (AskRepeat) d["askRepeat"] = true;
+                    d["steps"] = Steps.Select(s => (object)s.ToJson()).ToList();
+                    break;
                 case ActionType.Folder: d["slots"] = Slots.Select(s => (object)s.ToJson()).ToList(); break;
                 case ActionType.Delay: d["delayMs"] = DelayMs; break;
                 case ActionType.Click:
@@ -242,6 +263,8 @@ namespace Kyklos
             a.Media = Json.S(d, "media", "playpause");
             a.StepDelayMs = Json.I(d, "stepDelayMs", 60);
             a.DelayMs = Json.I(d, "delayMs", 250);
+            a.Repeat = ClampRepeat(Json.I(d, "repeat", 10));
+            a.AskRepeat = Json.B(d, "askRepeat");
             a.X = Json.I(d, "x");
             a.Y = Json.I(d, "y");
             a.Button = Json.S(d, "button", "left");

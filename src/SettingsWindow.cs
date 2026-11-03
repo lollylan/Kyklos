@@ -36,6 +36,12 @@ namespace Kyklos
         int _dragFrom = -1;
         Button _recBtn;
         object _recOld;
+        static readonly ActionType[] StepTypes =
+        {
+            ActionType.Text, ActionType.Ai, ActionType.Keys, ActionType.Open, ActionType.Url, ActionType.Media, ActionType.Delay, ActionType.Click,
+            ActionType.Focus, ActionType.Loop
+        };
+
         RecordBar _recBar;      // läuft gerade eine Makro-Aufnahme
 
         readonly ListBox WheelList;
@@ -230,8 +236,7 @@ namespace Kyklos
 
             foreach (var m in ActionDef.MediaNames) MediaBox.Items.Add(Item(m[1], m[0]));
 
-            foreach (var t in new[] { ActionType.Text, ActionType.Ai, ActionType.Keys, ActionType.Open, ActionType.Url, ActionType.Media, ActionType.Delay, ActionType.Click,
-                                      ActionType.Focus })
+            foreach (var t in StepTypes)
                 AddStepBox.Items.Add(Item(ActionDef.TypeName(t), t));
 
             foreach (var t in AiTemplates.All) AiTemplateBox.Items.Add(Item(t[0], t));
@@ -513,11 +518,7 @@ namespace Kyklos
             AddStepBox.SelectionChanged += (s, e) =>
             {
                 if (_loading || TagOf(AddStepBox) == null) return;
-                var step = new ActionDef { Type = (ActionType)TagOf(AddStepBox) };
-                // Nach „Text erkennen“ liegt der Text in der Zwischenablage, nicht in einer Markierung.
-                if (step.Type == ActionType.Ai && Cur.Action.Steps.Any(x => x.Type == ActionType.Media && x.Media == "ocr"))
-                    step.AiSource = AiSources.Clipboard;
-                Cur.Action.Steps.Add(step);
+                Cur.Action.Steps.Add(NewStep((ActionType)TagOf(AddStepBox), Cur.Action));
                 _loading = true; AddStepBox.SelectedIndex = -1; _loading = false;
                 BuildSteps();
                 SlotChanged(false);
@@ -530,7 +531,7 @@ namespace Kyklos
                 Touch();
             };
             OpenFolderBtn.Click += (s, e) => EnterFolder(Cur);
-            RecordMacroBtn.Click += (s, e) => RecordMacro();
+            RecordMacroBtn.Click += (s, e) => RecordMacro(Cur.Action);
             FolderFromFile.Click += (s, e) => { CancelRecord(); FillFolderFromFile(Cur); };
             FolderFromWeb.Click += (s, e) =>
             {
@@ -1305,16 +1306,23 @@ namespace Kyklos
 
         // ---------------------------------------------------------------- Makro-Schritte
 
-        void BuildSteps()
+        void BuildSteps() { BuildStepList(StepsHost, Cur.Action, ""); }
+
+        /// <param name="owner">Das Makro oder die Schleife, deren Schritte hier stehen.</param>
+        /// <param name="prefix">Nummer der Schleife, „3.“ – die Schritte darin heißen dann 3.1, 3.2 …</param>
+        void BuildStepList(StackPanel host, ActionDef owner, string prefix)
         {
-            StepsHost.Children.Clear();
-            var steps = Cur.Action.Steps;
+            host.Children.Clear();
+            var steps = owner.Steps;
+            bool inLoop = owner.Type == ActionType.Loop;
             if (steps.Count == 0)
             {
-                StepsHost.Children.Add(new TextBlock
+                host.Children.Add(new TextBlock
                 {
                     Style = (Style)_w.FindResource("Help"), Margin = new Thickness(0, 8, 0, 0),
-                    Text = "Noch keine Schritte. Ein Makro führt mehrere Aktionen nacheinander aus – zum Beispiel einen Text einfügen und danach Tab drücken."
+                    Text = inLoop
+                        ? "Noch keine Schritte in der Schleife. Füge unten welche hinzu, nimm sie auf oder schiebe vorhandene Schritte mit den Pfeilen herein."
+                        : "Noch keine Schritte. Ein Makro führt mehrere Aktionen nacheinander aus – zum Beispiel einen Text einfügen und danach Tab drücken."
                 });
                 return;
             }
@@ -1322,44 +1330,179 @@ namespace Kyklos
             {
                 int index = i;
                 var step = steps[i];
+                string number = prefix + (i + 1);
                 var head = new DockPanel();
                 var tools = new StackPanel { Orientation = Orientation.Horizontal };
                 DockPanel.SetDock(tools, Dock.Right);
                 if (step.Type == ActionType.Text)
-                    tools.Children.Add(StepTool("\uE8C6", "In Einzeltasten aufteilen – für Programme, die Buchstaben als Kürzel nutzen",
-                                                step.Text.Length > 0, () => SplitTextStep(index)));
-                tools.Children.Add(StepTool("", "Nach oben", index > 0, () => SwapSteps(index, index - 1)));
-                tools.Children.Add(StepTool("", "Nach unten", index < steps.Count - 1, () => SwapSteps(index, index + 1)));
-                tools.Children.Add(StepTool("", "Schritt entfernen", true, () =>
-                {
-                    Cur.Action.Steps.RemoveAt(index);
-                    BuildSteps();
-                    SlotChanged(false);
-                }));
+                    tools.Children.Add(StepTool("", "In Einzeltasten aufteilen – für Programme, die Buchstaben als Kürzel nutzen",
+                                                step.Text.Length > 0, () => SplitTextStep(owner, index)));
+                tools.Children.Add(StepTool("", MoveTip(owner, index, -1), inLoop || index > 0, () => MoveStep(owner, index, -1)));
+                tools.Children.Add(StepTool("", MoveTip(owner, index, 1), inLoop || index < steps.Count - 1, () => MoveStep(owner, index, 1)));
+                tools.Children.Add(StepTool("\uE711", step.Type == ActionType.Loop ? "Schleife entfernen" : "Schritt entfernen", true, () => RemoveStep(owner, index)));
                 head.Children.Add(tools);
                 head.Children.Add(new TextBlock
                 {
-                    Text = (i + 1) + ". " + ActionDef.TypeName(step.Type), FontWeight = FontWeights.SemiBold,
+                    Text = number + ". " + ActionDef.TypeName(step.Type), FontWeight = FontWeights.SemiBold,
                     VerticalAlignment = VerticalAlignment.Center
                 });
 
                 var body = new StackPanel();
                 body.Children.Add(head);
-                var editor = StepEditor(step);
+                var editor = StepEditor(step, number);
                 editor.Margin = new Thickness(0, 6, 0, 0);
                 body.Children.Add(editor);
-                StepsHost.Children.Add(new Border
+                bool lastInLoop = inLoop && i == steps.Count - 1;
+                host.Children.Add(new Border
                 {
-                    BorderBrush = Res("Line"), BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(0, 8, 0, 14), Child = body
+                    BorderBrush = Res("Line"), BorderThickness = new Thickness(0, 0, 0, lastInLoop ? 0 : 1),
+                    Padding = new Thickness(0, 8, 0, lastInLoop ? 2 : 14), Child = body
                 });
             }
+        }
+
+        static string MoveTip(ActionDef owner, int index, int dir)
+        {
+            int to = index + dir;
+            if (to < 0 || to >= owner.Steps.Count)
+            {
+                if (owner.Type == ActionType.Loop) return dir < 0 ? "Vor die Schleife" : "Hinter die Schleife";
+            }
+            else if (owner.Steps[index].Type != ActionType.Loop && owner.Steps[to].Type == ActionType.Loop) return "In die Schleife";
+            return dir < 0 ? "Nach oben" : "Nach unten";
+        }
+
+        /// <summary>
+        /// Anfang und Ende einer Schleife sind wie Klammern in der Liste: Ein Schritt, der auf eine Klammer trifft, wandert
+        /// hinein oder heraus. Eine Schleife selbst bewegt sich als Ganzes.
+        /// </summary>
+        void MoveStep(ActionDef owner, int index, int dir)
+        {
+            var steps = owner.Steps;
+            var step = steps[index];
+            int to = index + dir;
+            if (to < 0 || to >= steps.Count)
+            {
+                if (owner.Type != ActionType.Loop) return;
+                var outer = Cur.Action.Steps;
+                int at = outer.IndexOf(owner);
+                steps.RemoveAt(index);
+                outer.Insert(dir < 0 ? at : at + 1, step);
+            }
+            else if (step.Type != ActionType.Loop && steps[to].Type == ActionType.Loop)
+            {
+                var loop = steps[to];
+                steps.RemoveAt(index);
+                loop.Steps.Insert(dir < 0 ? loop.Steps.Count : 0, step);
+            }
+            else
+            {
+                steps[index] = steps[to];
+                steps[to] = step;
+            }
+            BuildSteps();
+            SlotChanged(false);
+        }
+
+        void RemoveStep(ActionDef owner, int index)
+        {
+            var step = owner.Steps[index];
+            if (step.Type == ActionType.Loop && step.Steps.Count > 0 &&
+                MessageBox.Show(_w, "Schleife mit " + ActionDef.StepCount(step.Steps.Count, true) + " entfernen?", "Schleife entfernen",
+                                MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+            owner.Steps.RemoveAt(index);
+            BuildSteps();
+            SlotChanged(false);
+        }
+
+        ActionDef NewStep(ActionType type, ActionDef owner)
+        {
+            var step = new ActionDef { Type = type };
+            // Nach „Text erkennen“ liegt der Text in der Zwischenablage, nicht in einer Markierung.
+            Func<ActionDef, bool> isOcr = x => x.Type == ActionType.Media && x.Media == "ocr";
+            if (type == ActionType.Ai && (Cur.Action.Steps.Any(isOcr) || owner.Steps.Any(isOcr))) step.AiSource = AiSources.Clipboard;
+            return step;
+        }
+
+        FrameworkElement LoopEditor(ActionDef loop, string number)
+        {
+            var panel = new StackPanel();
+            var row = new DockPanel { LastChildFill = false };
+            var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+            var box = new TextBox { Width = 64, TextAlignment = TextAlignment.Right, MaxLength = 3, Text = loop.Repeat.ToString() };
+            box.TextChanged += (s, e) =>
+            {
+                int v;
+                if (int.TryParse(box.Text, out v)) { loop.Repeat = ActionDef.ClampRepeat(v); Touch(); }
+            };
+            box.LostFocus += (s, e) => box.Text = loop.Repeat.ToString();
+            row.Children.Add(label);
+            row.Children.Add(box);
+            row.Children.Add(new TextBlock
+            {
+                Text = "mal", Foreground = Res("Ink2"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0)
+            });
+            panel.Children.Add(row);
+
+            var ask = new CheckBox
+            {
+                Style = (Style)_w.FindResource("Switch"), IsChecked = loop.AskRepeat, Margin = new Thickness(0, 10, 0, 0),
+                Content = new TextBlock { Text = "Beim Auslösen fragen, wie oft", VerticalAlignment = VerticalAlignment.Center }
+            };
+            panel.Children.Add(ask);
+            var help = new TextBlock { Style = (Style)_w.FindResource("Help"), Margin = new Thickness(0, 6, 0, 0) };
+            panel.Children.Add(help);
+            Action show = () =>
+            {
+                label.Text = loop.AskRepeat ? "Vorschlag" : "Wiederholen";
+                help.Text = (loop.AskRepeat
+                    ? "Kyklos fragt die Anzahl ab, bevor der erste Schritt des Makros läuft. Abbrechen startet das Makro gar nicht."
+                    : "Die Schritte laufen so oft direkt hintereinander, danach geht das Makro weiter.") +
+                    " Esc bricht eine laufende Schleife samt dem restlichen Makro ab.";
+            };
+            show();
+            ask.Checked += (s, e) => { loop.AskRepeat = true; show(); Touch(); };
+            ask.Unchecked += (s, e) => { loop.AskRepeat = false; show(); Touch(); };
+
+            // Die feine Linie links klammert die Schritte, die wiederholt werden.
+            var inner = new StackPanel();
+            var hostSteps = new StackPanel();
+            BuildStepList(hostSteps, loop, number + ".");
+            inner.Children.Add(hostSteps);
+            var add = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
+            var record = new Button
+            {
+                Style = (Style)_w.FindResource("Btn"), Content = "Aufnehmen", Margin = new Thickness(8, 0, 0, 0),
+                ToolTip = "Nimmt die Tasten auf, die du in einem anderen Programm drückst, und hängt sie an diese Schleife an."
+            };
+            record.Click += (s, e) => RecordMacro(loop);
+            DockPanel.SetDock(record, Dock.Right);
+            add.Children.Add(record);
+            var addBox = new ComboBox { Tag = "Schritt in die Schleife …" };
+            foreach (var t in StepTypes) if (t != ActionType.Loop) addBox.Items.Add(Item(ActionDef.TypeName(t), t));
+            addBox.SelectionChanged += (s, e) =>
+            {
+                if (_loading || TagOf(addBox) == null) return;
+                loop.Steps.Add(NewStep((ActionType)TagOf(addBox), loop));
+                SlotChanged(false);
+                // Erst danach neu aufbauen: Die Auswahlliste, die dieses Ereignis meldet, verschwindet dabei.
+                _w.Dispatcher.BeginInvoke(new Action(BuildSteps));
+            };
+            add.Children.Add(addBox);
+            inner.Children.Add(add);
+            panel.Children.Add(new Border
+            {
+                BorderBrush = Res("FieldLine"), BorderThickness = new Thickness(1, 0, 0, 0), Margin = new Thickness(2, 12, 0, 0),
+                Padding = new Thickness(14, 0, 0, 0), Child = inner
+            });
+            return panel;
         }
 
         /// <summary>
         /// Nimmt Tasten in anderen Programmen auf und hängt sie als Schritte an dieses Makro an. Die Einstellungen
         /// treten dafür zur Seite, damit das Programm dahinter vorn steht; Stopp holt sie zurück.
         /// </summary>
-        void RecordMacro()
+        void RecordMacro(ActionDef target)
         {
             if (_recBar != null) return;
             CancelRecord();
@@ -1376,7 +1519,7 @@ namespace Kyklos
                 _w.Activate();
                 var steps = rec.Finish();
                 if (!keep || steps.Count == 0) return;
-                macro.Steps.AddRange(steps);
+                target.Steps.AddRange(steps);
                 if (Cur.Action == macro) BuildSteps();
                 SlotChanged(false);
             };
@@ -1403,9 +1546,9 @@ namespace Kyklos
         }
 
         /// <summary>Ersetzt einen Text-Schritt durch einzelne Tastendrücke im aktuellen Tastaturlayout.</summary>
-        void SplitTextStep(int index)
+        void SplitTextStep(ActionDef owner, int index)
         {
-            var steps = Cur.Action.Steps;
+            var steps = owner.Steps;
             var parts = MacroRecorder.SplitText(steps[index].Text, Native.GetKeyboardLayout(0));
             steps.RemoveAt(index);
             steps.InsertRange(index, parts);
@@ -1413,18 +1556,12 @@ namespace Kyklos
             SlotChanged(false);
         }
 
-        void SwapSteps(int a, int b)
-        {
-            var steps = Cur.Action.Steps;
-            var tmp = steps[a]; steps[a] = steps[b]; steps[b] = tmp;
-            BuildSteps();
-            Touch();
-        }
-
-        FrameworkElement StepEditor(ActionDef step)
+        FrameworkElement StepEditor(ActionDef step, string number)
         {
             switch (step.Type)
             {
+                case ActionType.Loop:
+                    return LoopEditor(step, number);
                 case ActionType.Keys:
                     var kb = new Button
                     {

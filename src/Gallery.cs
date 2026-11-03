@@ -248,6 +248,7 @@ namespace Kyklos
                 case ActionType.Url: web = true; break;
                 case ActionType.Click: macro = true; break;
                 case ActionType.Macro:
+                case ActionType.Loop:
                     macro = true;
                     foreach (var st in a.Steps) Flags(st, ref prog, ref web, ref macro);
                     break;
@@ -274,6 +275,10 @@ namespace Kyklos
                 case ActionType.Click: found.Add("klickt mit der Maus auf eine feste Bildschirmposition"); break;
                 case ActionType.Macro:
                     found.Add("führt ein Makro mit " + a.Steps.Count + (a.Steps.Count == 1 ? " Schritt" : " Schritten") + " aus");
+                    foreach (var st in a.Steps) Scan(st, found);
+                    break;
+                case ActionType.Loop:
+                    found.Add("wiederholt " + ActionDef.StepCount(a.Steps.Count) + (a.AskRepeat ? " so oft wie beim Auslösen angegeben" : " " + a.Repeat + "-mal"));
                     foreach (var st in a.Steps) Scan(st, found);
                     break;
                 case ActionType.Folder: Scan(a.Slots, found); break;

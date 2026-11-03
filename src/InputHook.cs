@@ -28,6 +28,9 @@ namespace Kyklos
         public static volatile bool Paused;
         /// <summary>Ist gesetzt, solange ein Makro aufgenommen wird: bekommt jede Taste, die in einem fremden Programm gedrückt wird.</summary>
         public static volatile Action<RecordedKey> MacroSink;
+        /// <summary>Ist gesetzt, solange eine Schleife läuft: Esc geht dann nicht ans Programm, sondern setzt <see cref="LoopAborted"/>.</summary>
+        public static volatile bool WatchEscape;
+        public static volatile bool LoopAborted;
 
         static readonly uint OwnPid = (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
 
@@ -221,6 +224,13 @@ namespace Kyklos
                     return true;
                 }
                 return false;
+            }
+
+            if (vk == Native.VK_ESCAPE && WatchEscape)
+            {
+                LoopAborted = true;
+                Eat(vk);
+                return true;
             }
 
             if (StillHeld(vk, true)) return true;
