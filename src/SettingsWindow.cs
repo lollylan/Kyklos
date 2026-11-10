@@ -225,14 +225,21 @@ namespace Kyklos
             return i == null ? null : i.Tag;
         }
 
+        /// <summary>Füllt die Auswahl „Einfügen per" – identisch beim Baustein und bei Textschritten in Makros.</summary>
+        static void FillTextModeBox(ComboBox box)
+        {
+            box.Items.Add(Item("Zwischenablage – schnell, auch für lange Texte", TextMode.Paste));
+            box.Items.Add(Item("Tippen – Zeichen für Zeichen", TextMode.Type));
+            box.Items.Add(Item("Echte Tasten – simuliert Tastenanschläge, löst Kürzel aus (Praxissoftware)", TextMode.Physical));
+        }
+
         void BuildChoices()
         {
             foreach (var t in new[] { ActionType.None, ActionType.Text, ActionType.Ai, ActionType.Keys, ActionType.Open, ActionType.Url,
                                       ActionType.Media, ActionType.Macro, ActionType.Folder })
                 TypeBox.Items.Add(Item(ActionDef.TypeName(t), t));
 
-            TextModeBox.Items.Add(Item("Zwischenablage – schnell, auch für lange Texte", TextMode.Paste));
-            TextModeBox.Items.Add(Item("Tippen – Zeichen für Zeichen", TextMode.Type));
+            FillTextModeBox(TextModeBox);
 
             foreach (var m in ActionDef.MediaNames) MediaBox.Items.Add(Item(m[1], m[0]));
 
@@ -1606,13 +1613,27 @@ namespace Kyklos
                     ub.TextChanged += (s, e) => { step.Url = ub.Text; Touch(); };
                     return ub;
                 default:
+                    var panel = new StackPanel();
+                    // Textschritte in Makros haben ihren eigenen Einfügemodus: Ein Schritt kann Kürzel per echter
+                    // Taste auslösen, der nächste langen Text aus der Zwischenablage einfügen.
+                    var mode = new ComboBox();
+                    FillTextModeBox(mode);
+                    SelectTag(mode, step.Mode);
+                    mode.SelectionChanged += (s, e) =>
+                    {
+                        if (_loading || TagOf(mode) == null) return;
+                        step.Mode = (TextMode)TagOf(mode);
+                        Touch();
+                    };
+                    panel.Children.Add(mode);
                     var tb = new TextBox
                     {
                         Style = (Style)_w.FindResource("TextArea"), Text = step.Text, MinHeight = 34, MaxHeight = 120,
-                        Tag = "Text, der eingefügt wird"
+                        Tag = "Text, der eingefügt wird", Margin = new Thickness(0, 8, 0, 0)
                     };
                     tb.TextChanged += (s, e) => { step.Text = tb.Text; Touch(); };
-                    return tb;
+                    panel.Children.Add(tb);
+                    return panel;
             }
         }
 

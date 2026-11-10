@@ -114,25 +114,87 @@ namespace Kyklos
         }
 
         /// <summary>Tippt Text Zeichen für Zeichen; funktioniert auch dort, wo Einfügen gesperrt ist.</summary>
-        public static async Task TypeText(string text)
+        public static async Task TypeText(string text, bool physicalKeys = false)
         {
-            var l = new List<Native.INPUT>();
-            int inBatch = 0;
+            if (!physicalKeys)
+            {
+                var l = new List<Native.INPUT>();
+                int inBatch = 0;
+                foreach (char ch in text)
+                {
+                    if (ch == '\r') continue;
+                    if (ch == '\n') { l.Add(Key(Native.VK_RETURN, false)); l.Add(Key(Native.VK_RETURN, true)); }
+                    else if (ch == '\t') { l.Add(Key(Native.VK_TAB, false)); l.Add(Key(Native.VK_TAB, true)); }
+                    else { l.Add(Unicode(ch, false)); l.Add(Unicode(ch, true)); }
+                    if (++inBatch >= 24)
+                    {
+                        Send(l);
+                        l.Clear();
+                        inBatch = 0;
+                        await Task.Delay(8);    // langsame Programme verlieren sonst Zeichen
+                    }
+                }
+                Send(l);
+                return;
+            }
+
+            // Echte physische Tastenanschläge senden (für Programme wie Medical Office)
+            uint pid;
+            uint tid = Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out pid);
+            IntPtr layout = tid != 0 ? Native.GetKeyboardLayout(tid) : Native.GetKeyboardLayout(0);
+
             foreach (char ch in text)
             {
                 if (ch == '\r') continue;
-                if (ch == '\n') { l.Add(Key(Native.VK_RETURN, false)); l.Add(Key(Native.VK_RETURN, true)); }
-                else if (ch == '\t') { l.Add(Key(Native.VK_TAB, false)); l.Add(Key(Native.VK_TAB, true)); }
-                else { l.Add(Unicode(ch, false)); l.Add(Unicode(ch, true)); }
-                if (++inBatch >= 24)
+                if (ch == '\n')
                 {
-                    Send(l);
-                    l.Clear();
-                    inBatch = 0;
-                    await Task.Delay(8);    // langsame Programme verlieren sonst Zeichen
+                    Send(new List<Native.INPUT> { Key(Native.VK_RETURN, false) });
+                    await Task.Delay(20);
+                    Send(new List<Native.INPUT> { Key(Native.VK_RETURN, true) });
+                    await Task.Delay(25);
+                    continue;
+                }
+                if (ch == '\t')
+                {
+                    Send(new List<Native.INPUT> { Key(Native.VK_TAB, false) });
+                    await Task.Delay(20);
+                    Send(new List<Native.INPUT> { Key(Native.VK_TAB, true) });
+                    await Task.Delay(25);
+                    continue;
+                }
+
+                short scan = Native.VkKeyScanEx(ch, layout);
+                int vk = scan & 0xFF, mods = (scan >> 8) & 0xFF;
+                if (scan != -1 && vk != 0xFF && (mods & ~7) == 0)
+                {
+                    bool shift = (mods & 1) != 0;
+                    bool ctrl = (mods & 2) != 0;
+                    bool alt = (mods & 4) != 0;
+
+                    var down = new List<Native.INPUT>();
+                    if (ctrl) down.Add(Key(Native.VK_CONTROL, false));
+                    if (alt) down.Add(Key(Native.VK_MENU, false));
+                    if (shift) down.Add(Key(Native.VK_SHIFT, false));
+                    down.Add(Key(vk, false));
+                    Send(down);
+
+                    await Task.Delay(20);
+
+                    var up = new List<Native.INPUT>();
+                    up.Add(Key(vk, true));
+                    if (shift) up.Add(Key(Native.VK_SHIFT, true));
+                    if (alt) up.Add(Key(Native.VK_MENU, true));
+                    if (ctrl) up.Add(Key(Native.VK_CONTROL, true));
+                    Send(up);
+
+                    await Task.Delay(25);
+                }
+                else
+                {
+                    Send(new List<Native.INPUT> { Unicode(ch, false), Unicode(ch, true) });
+                    await Task.Delay(20);
                 }
             }
-            Send(l);
         }
     }
 
@@ -432,16 +494,16 @@ namespace Kyklos
             // Mitgelieferte Beispieltexte dürfen nicht unbemerkt als eigener Befund in einer Karteikarte landen.
             if (a.Sample) text = SampleMark + text;
 
-            if (a.Mode == TextMode.Type)
+            if (a.Mode != TextMode.Paste)
             {
-                await KeySender.TypeText(text);
+                await KeySender.TypeText(text, a.Mode == TextMode.Physical);
             }
             else
             {
                 ClipboardSnapshot snap = st.RestoreClipboard ? ClipboardSnapshot.Take() : null;
                 if (!ClipboardText.Set(text.Replace("\n", "\r\n")))
                 {
-                    await KeySender.TypeText(text);     // Zwischenablage dauerhaft belegt: lieber tippen als nichts tun
+                    await KeySender.TypeText(text, false);     // Zwischenablage dauerhaft belegt: lieber tippen als nichts tun
                 }
                 else
                 {
@@ -458,7 +520,7 @@ namespace Kyklos
 
             if (back > 0)
             {
-                await Task.Delay(a.Mode == TextMode.Type ? 30 : 90);
+                await Task.Delay(a.Mode != TextMode.Paste ? 30 : 90);
                 KeySender.Tap(Native.VK_LEFT, back);
             }
             return true;

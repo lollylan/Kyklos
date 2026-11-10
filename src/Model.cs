@@ -9,7 +9,7 @@ using System.Windows.Media.Imaging;
 namespace Kyklos
 {
     public enum ActionType { None, Text, Keys, Open, Url, Media, Macro, Folder, Delay, Click, Focus, Ai, Loop }
-    public enum TextMode { Paste, Type }
+    public enum TextMode { Paste, Type, Physical }
 
     /// <summary>Taste oder Maustaste samt Zusatztasten – als Auslöser eines Rads oder als zu sendende Kombination.</summary>
     public sealed class Chord
@@ -159,6 +159,7 @@ namespace Kyklos
                     var variants = Variants.Of(Text);
                     string t = Regex.Replace(Variants.Outline(Gaps.Outline(variants[0])).Replace("{cursor}", ""), @"\s+", " ").Trim();
                     if (t.Length == 0) return "Noch kein Text hinterlegt";
+                    if (Mode == TextMode.Physical) t = "Echte Tasten · " + t;
                     if (variants.Count > 1) t = variants.Count + " Varianten · " + t;
                     if (Sample) t = "Beispieltext: " + t;
                     return t.Length > 120 ? t.Substring(0, 118).TrimEnd() + " …" : t;
@@ -205,6 +206,7 @@ namespace Kyklos
                 case ActionType.Text:
                     d["text"] = Text ?? "";
                     if (Mode == TextMode.Type) d["mode"] = "type";
+                    else if (Mode == TextMode.Physical) d["mode"] = "physical";
                     if (Sample) d["sample"] = true;
                     break;
                 case ActionType.Keys: d["keys"] = Keys.ToJson(); break;
@@ -253,7 +255,8 @@ namespace Kyklos
             ActionType t;
             if (Enum.TryParse(Json.S(d, "type", "none"), true, out t)) a.Type = t;
             a.Text = Json.S(d, "text");
-            a.Mode = Json.S(d, "mode") == "type" ? TextMode.Type : TextMode.Paste;
+            string mode = Json.S(d, "mode");
+            a.Mode = mode == "type" ? TextMode.Type : mode == "physical" ? TextMode.Physical : TextMode.Paste;
             a.Sample = Json.B(d, "sample");
             var k = Json.O(d, "keys");
             if (k != null) a.Keys = Chord.FromJson(k);
